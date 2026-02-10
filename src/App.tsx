@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { DataProvider } from "./contexts/DataContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { Login } from "./components/Login";
@@ -120,6 +121,7 @@ export default function App() {
           </Layout>
         </DataProvider>
       )}
+      <SpeedInsights />
     </ThemeProvider>
   );
 }
