@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useData } from "../contexts/DataContext";
 
 export function InvoiceItemPicker() {
-  const { services, products } = useData();
+  const { services, products, getVendorById } = useData();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [serviceSearch, setServiceSearch] = useState("");
@@ -158,6 +158,9 @@ export function InvoiceItemPicker() {
                     <p className="text-xs font-bold text-slate-900 line-clamp-1">{item.name}</p>
                     <p className="text-xs font-bold text-blue-600 mt-0.5">₨{item.salePrice.toLocaleString()}</p>
                     <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Stock: {item.stockQuantity}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 font-medium">
+                      Vendor: {item.vendorId ? (getVendorById(item.vendorId)?.name || "-") : "-"}
+                    </p>
                   </div>
                 </button>
               ))}

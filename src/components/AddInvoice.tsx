@@ -86,7 +86,7 @@ interface AddInvoiceProps {
 }
 
 export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice }: AddInvoiceProps) {
-  const { addInvoice, updateInvoice, customers, getCustomerById, getCustomerVehicles, addVehicle, addCustomer, services: contextServices, products: contextProducts } = useData();
+  const { addInvoice, updateInvoice, refetch, customers, getCustomerById, getCustomerVehicles, addVehicle, addCustomer, services: contextServices, products: contextProducts } = useData();
   const { theme } = useTheme();
 
   // Services and products from catalogue (Settings) – so new items added there show here
@@ -151,6 +151,9 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
   // Invoice Preview Modal
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   
+  // After save, show the real invoice number in preview (not the temp INV-timestamp)
+  const [lastSavedInvoiceNumber, setLastSavedInvoiceNumber] = useState<string | null>(null);
+  
   // Track if invoice has been generated/saved
   const [isInvoiceGenerated, setIsInvoiceGenerated] = useState(false);
 
@@ -167,6 +170,11 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
     }
   }, [showInvoicePreview]);
 
+  // When creating a new invoice (not editing), clear any previous saved invoice number
+  useEffect(() => {
+    if (!editInvoice) setLastSavedInvoiceNumber(null);
+  }, [editInvoice]);
+
   // Pre-populate data when editing an invoice
   useEffect(() => {
     if (editInvoice) {
@@ -176,6 +184,7 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
       setCarMake(editInvoice.make || "");
       setCarModel(editInvoice.model || "");
       setVehicleNumber(editInvoice.plate || "");
+      setCarYear(editInvoice.carYear || "");
       setSelectedCustomerId(editInvoice.customerId || null);
       setIsCustomerLocked(true);
       
@@ -452,7 +461,11 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
       setLoadingVehiclesFor(customer.id);
       try {
         list = await getCustomerVehicles(customer.id);
-        setVehiclesByCustomerId((prev) => ({ ...prev, [customer.id]: list }));
+        const unique = (list || []).filter((v, i, self) => {
+          const key = (v.vehicleNumber || "").replace(/[\s-]/g, "").toUpperCase();
+          return i === self.findIndex((x) => (x.vehicleNumber || "").replace(/[\s-]/g, "").toUpperCase() === key);
+        });
+        setVehiclesByCustomerId((prev) => ({ ...prev, [customer.id]: unique }));
       } finally {
         setLoadingVehiclesFor(null);
       }
@@ -481,20 +494,37 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
   const handleSaveNewVehicle = async () => {
     if (!selectedCustomerId) return;
     try {
+      const normalizedNew = (newVehicleNumber || "").replace(/[\s-]/g, "").toUpperCase();
+      const existingList = vehiclesByCustomerId[selectedCustomerId] || [];
+      const duplicateExists = existingList.some(
+        (v) => (v.vehicleNumber || "").replace(/[\s-]/g, "").toUpperCase() === normalizedNew
+      );
+      if (duplicateExists) {
+        alert("This vehicle already exists for the selected customer.");
+        return;
+      }
       const newVehicle = await addVehicle(selectedCustomerId, {
         carMake: newVehicleMake,
         carModel: newVehicleModel,
         carYear: newVehicleYear || undefined,
         vehicleNumber: newVehicleNumber,
       });
-      setVehiclesByCustomerId((prev) => ({
-        ...prev,
-        [selectedCustomerId]: [...(prev[selectedCustomerId] || []), newVehicle],
-      }));
+      setVehiclesByCustomerId((prev) => {
+        const next = [...(prev[selectedCustomerId] || []), newVehicle].filter((v, i, self) => {
+          const key = (v.vehicleNumber || "").replace(/[\s-]/g, "").toUpperCase();
+          return i === self.findIndex((x) => (x.vehicleNumber || "").replace(/[\s-]/g, "").toUpperCase() === key);
+        });
+        return { ...prev, [selectedCustomerId]: next };
+      });
       if (customerForVehicleSelection?.id === selectedCustomerId) {
-        setCustomerForVehicleSelection((prev) =>
-          prev ? { ...prev, vehicles: [...prev.vehicles, newVehicle] } : null
-        );
+        setCustomerForVehicleSelection((prev) => {
+          if (!prev) return null;
+          const next = [...prev.vehicles, newVehicle].filter((v, i, self) => {
+            const key = (v.vehicleNumber || "").replace(/[\s-]/g, "").toUpperCase();
+            return i === self.findIndex((x) => (x.vehicleNumber || "").replace(/[\s-]/g, "").toUpperCase() === key);
+          });
+          return { ...prev, vehicles: next };
+        });
       }
       setCarMake(newVehicleMake);
       setCarModel(newVehicleModel);
@@ -1501,7 +1531,16 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
             >
               Cancel
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowInvoicePreview(true)}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Preview
+            </Button>
             <Button 
+              type="button"
               className="bg-theme hover:bg-theme-dark"
               disabled={!isFormValid}
               onClick={async () => {
@@ -1578,72 +1617,73 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
                   }
                 }
 
-                // Check if we're editing an existing invoice or creating a new one
-                if (editInvoice) {
-                  // Update existing invoice
-                  const updatedInvoiceData = {
-                    customer: customerName || 'Walk-in Customer',
-                    customerId: customerId,
-                    customerPhone: customerPhone,
-                    make: carMake || 'N/A',
-                    model: carModel || 'N/A',
-                    plate: vehicleNumber || 'N/A',
-                    amount: total,
-                    status: "Draft",
-                    paymentMethod: paymentMethod,
-                    services: selectedServices.length + selectedProducts.length,
-                    items: invoiceItems,
-                    subtotal: subtotal,
-                    tax: tax,
-                    discount: discountAmount,
-                    discountPercentage: discountPercentage,
-                    taxPercentage: selectedPaymentMethod?.taxRate ? Math.round(selectedPaymentMethod.taxRate * 100) : 0,
-                  };
-                  
-                  await updateInvoice(editInvoice.id, updatedInvoiceData);
-                  console.log("Invoice updated:", editInvoice.id);
-                  
-                  // Enable print and share buttons
-                  setIsInvoiceGenerated(true);
-                  
-                  // Show success message
-                  setShowSaveSuccess(true);
-                  setHasUnsavedChanges(false);
-                  setTimeout(() => {
-                    setShowSaveSuccess(false);
-                    if (onSubmit) onSubmit({ ...editInvoice, ...updatedInvoiceData });
-                  }, 1500);
-                } else {
-                  // Create new invoice
-                  const newInvoice = await addInvoice({
-                    customer: customerName || 'Walk-in Customer',
-                    customerId: customerId,
-                    customerPhone: customerPhone,
-                    make: carMake || 'N/A',
-                    model: carModel || 'N/A',
-                    plate: vehicleNumber || 'N/A',
-                    amount: total,
-                    status: "Draft",
-                    paymentMethod: paymentMethod,
-                    items: invoiceItems,
-                    subtotal: subtotal,
-                    tax: tax,
-                    discount: discountAmount,
-                    discountPercentage: discountPercentage,
-                    taxPercentage: selectedPaymentMethod?.taxRate ? Math.round(selectedPaymentMethod.taxRate * 100) : 0,
-                  });
-                  
-                  console.log("Invoice saved and flow completed:", newInvoice);
-                  
-                  // Enable print and share buttons
-                  setIsInvoiceGenerated(true);
-                  
-                  // Show invoice preview
+                try {
+                  // Check if we're editing an existing invoice or creating a new one
+                  if (editInvoice) {
+                    // Update existing invoice
+                    const updatedInvoiceData = {
+                      customer: customerName || 'Walk-in Customer',
+                      customerId: customerId,
+                      customerPhone: customerPhone,
+                      make: carMake || 'N/A',
+                      model: carModel || 'N/A',
+                      plate: vehicleNumber || 'N/A',
+                      carYear: carYear || undefined,
+                      amount: total,
+                      status: "Draft",
+                      paymentMethod: paymentMethod,
+                      services: selectedServices.length + selectedProducts.length,
+                      items: invoiceItems,
+                      subtotal: subtotal,
+                      tax: tax,
+                      discount: discountAmount,
+                      discountPercentage: discountPercentage,
+                      taxPercentage: selectedPaymentMethod?.taxRate ? Math.round(selectedPaymentMethod.taxRate * 100) : 0,
+                    };
+                    
+                    await updateInvoice(editInvoice.id, updatedInvoiceData);
+                    console.log("Invoice updated:", editInvoice.id);
+                    
+                    setIsInvoiceGenerated(true);
+                    setShowSaveSuccess(true);
+                    setHasUnsavedChanges(false);
+                    setTimeout(() => {
+                      setShowSaveSuccess(false);
+                      if (onSubmit) onSubmit({ ...editInvoice, ...updatedInvoiceData });
+                    }, 1500);
+                  } else {
+                    // Create new invoice
+                    const newInvoice = await addInvoice({
+                      customer: customerName || 'Walk-in Customer',
+                      customerId: customerId,
+                      customerPhone: customerPhone,
+                      make: carMake || 'N/A',
+                      model: carModel || 'N/A',
+                      plate: vehicleNumber || 'N/A',
+                      carYear: carYear || undefined,
+                      amount: total,
+                      status: "Draft",
+                      paymentMethod: paymentMethod,
+                      items: invoiceItems,
+                      subtotal: subtotal,
+                      tax: tax,
+                      discount: discountAmount,
+                      discountPercentage: discountPercentage,
+                      taxPercentage: selectedPaymentMethod?.taxRate ? Math.round(selectedPaymentMethod.taxRate * 100) : 0,
+                    });
+                    
+                    console.log("Invoice saved and flow completed:", newInvoice);
+                    setLastSavedInvoiceNumber((newInvoice as { invoiceNumber?: string })?.invoiceNumber ?? null);
+                    setIsInvoiceGenerated(true);
+                    setShowInvoicePreview(true);
+                    setShowSaveSuccess(true);
+                    setHasUnsavedChanges(false);
+                    await refetch();
+                  }
+                } catch (err) {
+                  console.error("Save invoice failed:", err);
+                  toast.error("Could not save invoice. You can still use Preview to view or print.");
                   setShowInvoicePreview(true);
-                  
-                  // Show success message
-                  setShowSaveSuccess(true);
-                  setHasUnsavedChanges(false);
                 }
               }}
             >
@@ -1689,9 +1729,12 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
       {/* Invoice Preview Modal */}
       <InvoicePreview
         isOpen={showInvoicePreview}
-        onClose={() => setShowInvoicePreview(false)}
+        onClose={() => {
+          setShowInvoicePreview(false);
+          refetch();
+        }}
         invoiceData={{
-          invoiceNumber: editInvoice?.invoiceNumber || editInvoice?.id || `INV-${String(Date.now()).slice(-6)}`,
+          invoiceNumber: lastSavedInvoiceNumber ?? editInvoice?.invoiceNumber ?? (editInvoice?.id ? `INV-${String(editInvoice.id).padStart(3, "0")}` : null) ?? `INV-${String(Date.now()).slice(-6)}`,
           invoiceDate: new Date().toLocaleDateString('en-GB'),
           customerName: customerName || 'N/A',
           customerPhone: customerPhone || 'N/A',

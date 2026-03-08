@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatDisplayDate } from "../utils/dateFormat";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -947,7 +948,7 @@ export function JobCardDetail({ jobCard, onClose, onSave, userRole = "Admin" }: 
                         {/* Timestamp */}
                         <div className="flex items-center gap-2 mt-2">
                           <Clock className="h-3 w-3 text-slate-400" />
-                          <p className="text-xs text-slate-500">{comment.date} at {comment.timestamp}</p>
+                          <p className="text-xs text-slate-500">{formatDisplayDate(comment.date)} at {comment.timestamp}</p>
                         </div>
                       </div>
                     </div>

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
+import { formatDisplayDate } from "../utils/dateFormat";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,15 @@ export function Vendors() {
     method: "Bank Transfer",
     notes: "",
   });
+  const formatPkPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    let after = digits;
+    if (after.startsWith("0092")) after = after.slice(4);
+    else if (after.startsWith("92")) after = after.slice(2);
+    else if (after.startsWith("0")) after = after.slice(1);
+    after = after.slice(0, 10);
+    return after ? `+92 ${after}` : "+92 ";
+  };
 
   const filteredVendors = vendors.filter((vendor) =>
     vendor.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -61,6 +71,10 @@ export function Vendors() {
   const handleAddVendor = () => {
     if (!vendorForm.name) {
       alert("Please enter vendor name");
+      return;
+    }
+    if (vendorForm.phone && !/^\+92\s\d{10}$/.test(vendorForm.phone)) {
+      alert("Please enter phone in +92 XXXXXXXXXX format");
       return;
     }
 
@@ -188,7 +202,7 @@ export function Vendors() {
                             <p className="font-semibold text-slate-900">
                               {record.id}
                             </p>
-                            <p className="text-sm text-slate-600">{record.date}</p>
+                            <p className="text-sm text-slate-600">{formatDisplayDate(record.date)}</p>
                           </div>
                           <p className="font-bold text-blue-600">
                             ₨{record.totalAmount.toLocaleString()}
@@ -227,7 +241,7 @@ export function Vendors() {
                             <p className="font-semibold text-slate-900">
                               {payment.id}
                             </p>
-                            <p className="text-sm text-slate-600">{payment.date}</p>
+                            <p className="text-sm text-slate-600">{formatDisplayDate(payment.date)}</p>
                             <p className="text-sm text-slate-600">
                               {payment.method}
                             </p>
@@ -511,9 +525,10 @@ export function Vendors() {
                 id="vendorPhone"
                 value={vendorForm.phone}
                 onChange={(e) =>
-                  setVendorForm({ ...vendorForm, phone: e.target.value })
+                  setVendorForm({ ...vendorForm, phone: formatPkPhone(e.target.value) })
                 }
-                placeholder="+92 300 1234567"
+                placeholder="+92 XXXXXXXXXX"
+                maxLength={14}
                 className="h-10 border-slate-300 focus:border-theme focus:ring-theme"
               />
             </div>
@@ -533,7 +548,7 @@ export function Vendors() {
               />
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-3">
             <Button 
               variant="outline" 
               onClick={() => setShowAddModal(false)}

@@ -64,7 +64,7 @@ export function Sales() {
   );
 
   return (
-    <div className="h-full flex gap-6">
+    <div className="h-full flex flex-col lg:flex-row gap-6">
       {/* Products Section */}
       <div className="flex-1 space-y-4">
         <div className="flex gap-4">
@@ -83,7 +83,7 @@ export function Sales() {
         </div>
 
         <ScrollArea className="h-[calc(100vh-280px)]">
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredProducts.map((product) => (
               <Card
                 key={product.id}
@@ -105,7 +105,7 @@ export function Sales() {
       </div>
 
       {/* Invoice Section */}
-      <Card className="w-96 flex flex-col">
+      <Card className="w-full lg:w-96 flex flex-col">
         <CardHeader>
           <CardTitle>Current Sale</CardTitle>
         </CardHeader>

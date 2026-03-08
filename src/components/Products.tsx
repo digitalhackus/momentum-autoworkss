@@ -38,8 +38,10 @@ export function Products() {
   // Form state
   const [formData, setFormData] = useState({
     name: "",
+    brand: "",
     category: "",
     salePrice: "",
+    costPrice: "",
     stockQuantity: "",
     vendorId: "",
   });
@@ -54,7 +56,8 @@ export function Products() {
   const filteredProducts = products.filter(
     (product) =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase())
+      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleAddProduct = () => {
@@ -72,16 +75,17 @@ export function Products() {
 
     addProduct({
       name: formData.name,
+      brand: formData.brand.trim(),
       category: formData.category,
       salePrice: parseFloat(formData.salePrice),
-      lastCostPrice: 0,
-      averageCostPrice: 0,
+      lastCostPrice: formData.costPrice ? parseFloat(formData.costPrice) : 0,
+      averageCostPrice: formData.costPrice ? parseFloat(formData.costPrice) : 0,
       stockQuantity: stockQty,
       status,
       vendorId: formData.vendorId,
     });
 
-    setFormData({ name: "", category: "", salePrice: "", stockQuantity: "", vendorId: "" });
+    setFormData({ name: "", brand: "", category: "", salePrice: "", costPrice: "", stockQuantity: "", vendorId: "" });
     setShowAddModal(false);
   };
 
@@ -90,8 +94,10 @@ export function Products() {
     if (product) {
       setFormData({
         name: product.name,
+        brand: product.brand || "",
         category: product.category,
         salePrice: product.salePrice.toString(),
+        costPrice: (product.lastCostPrice ?? 0).toString(),
         stockQuantity: product.stockQuantity.toString(),
         vendorId: product.vendorId || "",
       });
@@ -100,33 +106,37 @@ export function Products() {
     }
   };
 
-  const handleUpdateProduct = () => {
+  const handleUpdateProduct = async () => {
     if (!formData.name || !formData.category || !formData.salePrice) {
       alert("Please fill all required fields");
       return;
     }
 
-    if (editingProduct) {
-      const stockQty = parseInt(formData.stockQuantity) || 0;
-      
-      // Determine status based on stock quantity
-      let status: "In Stock" | "Low Stock" | "Out of Stock" = "In Stock";
-      if (stockQty === 0) status = "Out of Stock";
-      else if (stockQty < 10) status = "Low Stock";
+    if (!editingProduct) return;
 
-      updateProduct(editingProduct, {
+    const stockQty = parseInt(formData.stockQuantity) || 0;
+    let status: "In Stock" | "Low Stock" | "Out of Stock" = "In Stock";
+    if (stockQty === 0) status = "Out of Stock";
+    else if (stockQty < 10) status = "Low Stock";
+
+    try {
+      await updateProduct(editingProduct, {
         name: formData.name,
+        brand: formData.brand.trim(),
         category: formData.category,
         salePrice: parseFloat(formData.salePrice),
+        lastCostPrice: formData.costPrice ? parseFloat(formData.costPrice) : 0,
         stockQuantity: stockQty,
         status,
-        vendorId: formData.vendorId,
+        vendorId: formData.vendorId || undefined,
       });
+      setFormData({ name: "", brand: "", category: "", salePrice: "", costPrice: "", stockQuantity: "", vendorId: "" });
+      setEditingProduct(null);
+      setShowAddModal(false);
+    } catch (err) {
+      console.error("Error updating product:", err);
+      alert(err instanceof Error ? err.message : "Failed to update product. Please try again.");
     }
-
-    setFormData({ name: "", category: "", salePrice: "", stockQuantity: "", vendorId: "" });
-    setEditingProduct(null);
-    setShowAddModal(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -232,28 +242,31 @@ export function Products() {
         <table className="w-full table-fixed">
           <thead className="bg-gradient-to-r from-slate-50 to-theme-50 border-b border-theme-100">
             <tr>
-              <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider w-[18%]">
+              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider w-[16%]">
                 Product Name
               </th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider w-[12%]">
+              <th className="px-2 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider w-[9%]">
+                Brand
+              </th>
+              <th className="px-2 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider w-[10%]">
                 Category
               </th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider w-[12%]">
+              <th className="px-2 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider w-[10%]">
                 Vendor
               </th>
-              <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider w-[13%]">
+              <th className="px-2 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider w-[11%]">
                 Sale Price
               </th>
-              <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider w-[13%]">
+              <th className="px-2 py-4 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider w-[11%]">
                 Cost Price
               </th>
-              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider w-[10%]">
+              <th className="px-2 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider w-[9%]">
                 Stock Qty
               </th>
-              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider w-[12%]">
+              <th className="px-2 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider w-[12%]">
                 Status
               </th>
-              <th className="px-4 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider w-[10%]">
+              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider w-[12%]">
                 Actions
               </th>
             </tr>
@@ -261,30 +274,33 @@ export function Products() {
           <tbody className="bg-white divide-y divide-slate-100">
             {filteredProducts.map((product) => (
               <tr key={product.id} className="hover:bg-theme-50/50 transition-colors">
-                <td className="px-4 py-4">
-                  <div className="font-semibold text-slate-900 truncate">{product.name}</div>
-                </td>
                 <td className="px-3 py-4">
+                  <div className="font-semibold text-slate-900 truncate" title={product.name}>{product.name}</div>
+                </td>
+                <td className="px-2 py-4">
+                  <span className="text-slate-600 text-sm truncate block" title={product.brand || ""}>{product.brand || "—"}</span>
+                </td>
+                <td className="px-2 py-4">
                   <span className="text-slate-600 text-sm truncate block">{product.category}</span>
                 </td>
-                <td className="px-3 py-4">
+                <td className="px-2 py-4">
                   <span className="text-slate-600 text-sm truncate block">{getVendorName(product.vendorId)}</span>
                 </td>
-                <td className="px-3 py-4 text-right">
+                <td className="px-2 py-4 text-right">
                   <span className="font-medium text-theme text-sm">₨{product.salePrice.toLocaleString()}</span>
                 </td>
-                <td className="px-3 py-4 text-right text-slate-700 text-sm">
+                <td className="px-2 py-4 text-right text-slate-700 text-sm">
                   ₨{product.lastCostPrice.toLocaleString()}
                 </td>
-                <td className="px-3 py-4 text-center">
+                <td className="px-2 py-4 text-center">
                   <span className="font-medium text-slate-900 text-sm">{product.stockQuantity}</span>
                 </td>
-                <td className="px-3 py-4">
+                <td className="px-2 py-4">
                   <div className="flex justify-center">
                     {getStatusBadge(product.status)}
                   </div>
                 </td>
-                <td className="px-4 py-4">
+                <td className="px-3 py-4">
                   <div className="flex justify-center">
                     <Button
                       variant="ghost"
@@ -307,9 +323,9 @@ export function Products() {
         {filteredProducts.map((product) => (
           <Card key={product.id} className="p-4 border-slate-200 hover:border-theme-200 transition-colors">
             <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <h3 className="font-semibold text-slate-900">{product.name}</h3>
-                <p className="text-sm text-slate-600">{product.category}</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-slate-900 truncate">{product.name}</h3>
+                <p className="text-sm text-slate-600">{product.category}{product.brand ? ` · ${product.brand}` : ""}</p>
               </div>
               <div className="flex items-center gap-2">
                 {getStatusBadge(product.status)}
@@ -392,7 +408,19 @@ export function Products() {
                 className="h-9 text-sm"
               />
             </div>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="space-y-1">
+              <Label htmlFor="brand" className="text-xs font-semibold text-slate-700">
+                Brand <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="brand"
+                value={formData.brand}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                placeholder="e.g., Bosch, Mobil"
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
               <div className="space-y-1">
                 <Label
                   htmlFor="salePrice"
@@ -406,6 +434,24 @@ export function Products() {
                   value={formData.salePrice}
                   onChange={(e) =>
                     setFormData({ ...formData, salePrice: e.target.value })
+                  }
+                  placeholder="0"
+                  className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label
+                  htmlFor="costPrice"
+                  className="text-xs font-semibold text-slate-700"
+                >
+                  Cost Price (₨)
+                </Label>
+                <Input
+                  id="costPrice"
+                  type="number"
+                  value={formData.costPrice}
+                  onChange={(e) =>
+                    setFormData({ ...formData, costPrice: e.target.value })
                   }
                   placeholder="0"
                   className="h-9 text-sm"
@@ -461,21 +507,7 @@ export function Products() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="bg-gradient-to-r from-theme-50 to-theme-100 border-l-4 border-theme rounded-lg p-2.5">
-              <div className="flex items-start gap-1.5">
-                <div className="bg-theme rounded-full p-0.5 mt-0.5">
-                  <AlertCircle className="h-2.5 w-2.5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-theme-dark">
-                    Note
-                  </p>
-                  <p className="text-xs text-theme-darker mt-0.5 leading-tight">
-                    Cost price is automatically updated when you add stock through "Stock In".
-                  </p>
-                </div>
-              </div>
-            </div>
+            
           </div>
           <DialogFooter className="pt-2 border-t gap-2">
             <Button

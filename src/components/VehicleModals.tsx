@@ -70,8 +70,8 @@ export function AddVehicleModal({
       <Card className="w-full max-w-md p-6 bg-white">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
-              <Car className="h-5 w-5 text-teal-600" />
+            <div className="w-10 h-10 bg-theme-100 rounded-lg flex items-center justify-center">
+              <Car className="h-5 w-5 text-theme" />
             </div>
             <h3 className="text-lg font-semibold">Add New Vehicle</h3>
           </div>
@@ -86,15 +86,15 @@ export function AddVehicleModal({
         </div>
 
         {/* Customer Info (Locked) */}
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="mb-4 p-3 bg-theme-50 rounded-lg border border-theme-200">
           <div className="flex items-center gap-2 mb-2">
-            <Lock className="h-3.5 w-3.5 text-blue-600" />
-            <span className="text-xs font-semibold text-blue-900">
+            <Lock className="h-3.5 w-3.5 text-theme" />
+            <span className="text-xs font-semibold text-theme-dark">
               Adding vehicle for
             </span>
           </div>
-          <p className="text-sm font-medium text-blue-900">{customerName}</p>
-          <p className="text-xs text-blue-700">{customerPhone}</p>
+          <p className="text-sm font-medium text-theme-dark">{customerName}</p>
+          <p className="text-xs text-theme">{customerPhone}</p>
         </div>
 
         {/* Vehicle Form */}
@@ -158,7 +158,7 @@ export function AddVehicleModal({
           </Button>
           <Button
             onClick={handleSave}
-            className="flex-1 bg-teal-600 hover:bg-teal-700"
+            className="flex-1 bg-theme hover:bg-theme-dark text-white"
             disabled={!newVehicleMake || !newVehicleModel || !newVehicleYear || !newVehicleNumber}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -208,11 +208,11 @@ export function VehicleSelectionModal({
                 onSelectVehicle(vehicle);
                 onClose();
               }}
-              className="w-full p-4 text-left border-2 border-slate-200 rounded-lg hover:border-teal-500 hover:bg-teal-50 transition-all"
+              className="w-full p-4 text-left border-2 border-slate-200 rounded-lg hover:border-theme-300 hover:bg-theme-50 transition-all"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
-                  <Car className="h-5 w-5 text-teal-600" />
+                <div className="w-10 h-10 bg-theme-100 rounded-lg flex items-center justify-center">
+                  <Car className="h-5 w-5 text-theme" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">

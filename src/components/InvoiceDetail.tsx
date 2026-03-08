@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { InvoiceTemplate } from "./InvoiceTemplate";
-import html2pdf from "html2pdf.js";
+import { formatDisplayDate } from "../utils/dateFormat";
 import { 
   ArrowLeft,
   Printer, 
@@ -10,6 +10,7 @@ import {
   X,
   Edit,
   Share2,
+  CheckCircle2,
 } from "lucide-react";
 
 interface InvoiceDetailProps {
@@ -44,9 +45,10 @@ interface InvoiceDetailProps {
   };
   onClose?: () => void;
   onEdit?: () => void;
+  onMarkPaid?: () => void;
 }
 
-export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) {
+export function InvoiceDetail({ invoice, onClose, onEdit, onMarkPaid }: InvoiceDetailProps) {
   const [showInvoicePreview, setShowInvoicePreview] = useState(true);
   
   // Check if invoice is editable (only unpaid invoices can be edited)
@@ -57,9 +59,6 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
   };
 
   const handleDownloadPDF = () => {
-    // Use native print dialog - this is the most reliable way to generate PDFs
-    // Users can select "Save as PDF" as the destination
-    // This preserves colors, layout, and formatting perfectly
     window.print();
   };
 
@@ -140,6 +139,16 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
                     Edit
                   </Button>
                 )}
+                {isEditable && onMarkPaid && (
+                  <Button
+                    onClick={onMarkPaid}
+                    size="sm"
+                    className="h-9 text-sm bg-green-600 hover:bg-green-700 text-white transition-colors"
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Mark as Paid
+                  </Button>
+                )}
                 {onClose && (
                   <Button
                     variant="outline"
@@ -159,7 +168,7 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
               <div id="invoice-printable">
                 <InvoiceTemplate
                   invoiceNumber={invoice.invoiceNumber || `INV-${invoice.id.padStart(3, '0')}`}
-                  invoiceDate={new Date(invoice.date).toLocaleDateString('en-GB')}
+                  invoiceDate={formatDisplayDate(invoice.date)}
                   invoiceTime={new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                   customerName={invoice.customer || 'N/A'}
                   customerContact={invoice.customerPhone || 'N/A'}

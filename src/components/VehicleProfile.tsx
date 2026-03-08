@@ -49,6 +49,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { formatDisplayDate } from "../utils/dateFormat";
 
 interface VehicleProfileProps {
   vehicle: {
@@ -516,7 +517,7 @@ export function VehicleProfile({
                               </span>
                             </div>
                             <div className="flex items-center gap-4 text-xs text-slate-500">
-                              <span>{service.date}</span>
+                              <span>{formatDisplayDate(service.date)}</span>
                               <span>•</span>
                               <span>Tech: {service.technician}</span>
                               <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
@@ -673,7 +674,7 @@ export function VehicleProfile({
                         <TableBody>
                           {details.serviceHistory.map((service) => (
                             <TableRow key={service.id}>
-                              <TableCell className="text-sm">{service.date}</TableCell>
+                              <TableCell className="text-sm">{formatDisplayDate(service.date)}</TableCell>
                               <TableCell className="font-medium">{service.jobCard}</TableCell>
                               <TableCell className="text-sm max-w-xs">
                                 {service.workDone}
@@ -757,7 +758,7 @@ export function VehicleProfile({
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{file.name}</p>
                               <p className="text-xs text-slate-500 mt-1">
-                                {file.size} • {file.date}
+                                {file.size} • {formatDisplayDate(file.date)}
                               </p>
                             </div>
                             <DropdownMenu>

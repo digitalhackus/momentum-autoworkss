@@ -31,7 +31,12 @@ import {
   Package,
   ArrowDownToLine,
   Store,
-  Clock
+  Clock,
+  DollarSign,
+  Receipt,
+  Zap,
+  Wallet,
+  CalendarCheck
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Badge } from "./ui/badge";
@@ -40,7 +45,7 @@ import { GlobalSearch } from "./GlobalSearch";
 interface LayoutProps {
   children: React.ReactNode;
   currentPage: string;
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, options?: { customerId?: string }) => void;
   onLogout: () => void;
   isCreatingInvoice?: boolean;
   onBackFromInvoice?: () => void;
@@ -61,6 +66,13 @@ const inventoryItems = [
   { id: "vendors", label: "Vendors", icon: Store },
 ];
 
+const financeItems = [
+  { id: "expenses", label: "Expenses", icon: Receipt },
+  { id: "utilities", label: "Utilities", icon: Zap },
+  { id: "salaries", label: "Salaries", icon: Wallet },
+  { id: "daily-close", label: "Daily Close", icon: CalendarCheck },
+];
+
 const bottomMenuItems = [
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "settings", label: "Settings", icon: Settings },
@@ -68,9 +80,15 @@ const bottomMenuItems = [
 
 export function Layout({ children, currentPage, onNavigate, onLogout, isCreatingInvoice, onBackFromInvoice }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [inventoryExpanded, setInventoryExpanded] = useState(
     ["products", "stock-in", "vendors"].includes(currentPage)
   );
+  const [financeExpanded, setFinanceExpanded] = useState(
+    ["expenses", "utilities", "salaries", "salaries-employees", "salaries-records", "daily-close"].includes(currentPage)
+  );
+  const isSalariesActive = (id: string) =>
+    id === "salaries" ? ["salaries", "salaries-employees", "salaries-records"].includes(currentPage) : currentPage === id;
 
   const NavigationItems = () => (
     <>
@@ -123,6 +141,43 @@ export function Layout({ children, currentPage, onNavigate, onLogout, isCreating
                 }}
                 className={`w-full flex items-center gap-3 pl-12 pr-4 py-2.5 rounded-lg transition-colors text-sm ${
                   currentPage === item.id
+                    ? "bg-theme-dark text-white shadow-sm"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <button
+        onClick={() => setFinanceExpanded(!financeExpanded)}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+          ["expenses", "utilities", "salaries", "salaries-employees", "salaries-records", "daily-close"].includes(currentPage)
+            ? "bg-theme text-white shadow-md shadow-theme/20"
+            : "text-slate-300 hover:bg-slate-800"
+        }`}
+      >
+        <DollarSign className="h-5 w-5" />
+        <span className="flex-1 text-left">Finance</span>
+        <ChevronDown className={`h-4 w-4 transition-transform ${financeExpanded ? "rotate-180" : ""}`} />
+      </button>
+      {financeExpanded && (
+        <div className="space-y-1">
+          {financeItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onNavigate(item.id);
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 pl-12 pr-4 py-2.5 rounded-lg transition-colors text-sm ${
+                  isSalariesActive(item.id)
                     ? "bg-theme-dark text-white shadow-sm"
                     : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                 }`}
@@ -204,9 +259,9 @@ export function Layout({ children, currentPage, onNavigate, onLogout, isCreating
                       <Menu className="h-6 w-6" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="left" className="w-64 bg-slate-900 text-white p-0" aria-describedby={undefined}>
+                  <SheetContent side="left" className="w-64 bg-slate-900 text-white p-0 flex flex-col h-full overflow-hidden" aria-describedby={undefined}>
                     <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                    <div className="p-6 border-b border-slate-800">
+                    <div className="p-6 border-b border-slate-800 shrink-0">
                       <div className="flex items-center gap-3">
                         <div className="bg-theme p-2 rounded-lg shadow-lg shadow-theme/20">
                           <Wrench className="h-6 w-6" />
@@ -217,7 +272,7 @@ export function Layout({ children, currentPage, onNavigate, onLogout, isCreating
                         </div>
                       </div>
                     </div>
-                    <nav className="p-4 space-y-1">
+                    <nav className="p-4 space-y-1 overflow-y-auto flex-1">
                       <NavigationItems />
                     </nav>
                   </SheetContent>
@@ -229,6 +284,17 @@ export function Layout({ children, currentPage, onNavigate, onLogout, isCreating
                   </div>
                   <span className="font-semibold text-sm">Momentum AutoWorks</span>
                 </div>
+                <Button variant="ghost" size="icon" className="ml-1" onClick={() => setMobileSearchOpen(true)}>
+                  <Search className="h-5 w-5" />
+                </Button>
+                <Sheet open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
+                  <SheetContent side="top" className="max-h-[60vh] overflow-y-auto" aria-describedby={undefined}>
+                    <SheetTitle className="sr-only">Search</SheetTitle>
+                    <div className="mt-2">
+                      <GlobalSearch onNavigate={(p) => { onNavigate(p); setMobileSearchOpen(false); }} />
+                    </div>
+                  </SheetContent>
+                </Sheet>
               </div>
             )}
 
@@ -282,9 +348,10 @@ export function Layout({ children, currentPage, onNavigate, onLogout, isCreating
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-auto p-4 pb-20 lg:p-6 lg:pb-6">
           {children}
         </main>
+        {/* Mobile bottom navigation removed per request */}
       </div>
     </div>
   );

@@ -26,10 +26,10 @@ export function Suppliers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl mb-2">Supplier Management</h1>
-          <p className="text-gray-600">Manage your suppliers and vendors</p>
+          <h1 className="text-2xl md:text-3xl mb-1 md:mb-2">Supplier Management</h1>
+          <p className="text-sm md:text-base text-gray-600">Manage your suppliers and vendors</p>
         </div>
         <Button className="bg-orange-500 hover:bg-orange-600">
           <Plus className="h-4 w-4 mr-2" />
@@ -50,42 +50,70 @@ export function Suppliers() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Supplier Name</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Outstanding Balance</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSuppliers.map((supplier) => (
-                <TableRow key={supplier.id}>
-                  <TableCell>{supplier.name}</TableCell>
-                  <TableCell>{supplier.contact}</TableCell>
-                  <TableCell>{supplier.category}</TableCell>
-                  <TableCell className={supplier.balance !== "Rs 0" ? "text-orange-600" : ""}>
+          {/* Mobile card view */}
+          <div className="lg:hidden space-y-3">
+            {filteredSuppliers.map((supplier) => (
+              <Card key={supplier.id} className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-slate-900">{supplier.name}</h3>
+                    <p className="text-sm text-slate-600">{supplier.contact}</p>
+                    <p className="text-xs text-slate-500">{supplier.category}</p>
+                  </div>
+                  <Badge className={supplier.balance !== "Rs 0" ? "bg-orange-500" : "bg-green-600"}>
                     {supplier.balance}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="default">{supplier.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">Edit</Button>
-                      <Button size="sm" variant="outline">
-                        <Eye className="h-3 w-3 mr-1" />
-                        History
-                      </Button>
-                    </div>
-                  </TableCell>
+                  </Badge>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1">Edit</Button>
+                  <Button size="sm" variant="outline" className="flex-1">
+                    <Eye className="h-3 w-3 mr-1" />
+                    History
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop table view */}
+          <div className="hidden lg:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Supplier Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Outstanding Balance</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredSuppliers.map((supplier) => (
+                  <TableRow key={supplier.id}>
+                    <TableCell>{supplier.name}</TableCell>
+                    <TableCell>{supplier.contact}</TableCell>
+                    <TableCell>{supplier.category}</TableCell>
+                    <TableCell className={supplier.balance !== "Rs 0" ? "text-orange-600" : ""}>
+                      {supplier.balance}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">{supplier.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline">Edit</Button>
+                        <Button size="sm" variant="outline">
+                          <Eye className="h-3 w-3 mr-1" />
+                          History
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

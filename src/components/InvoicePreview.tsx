@@ -1,5 +1,4 @@
 import { Button } from "./ui/button";
-import { Card } from "./ui/card";
 import { X, Printer, Share2, Download } from "lucide-react";
 
 interface InvoiceData {
@@ -68,62 +67,60 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 overflow-y-auto pt-4 pb-8 print:bg-white"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto print:bg-white"
       onClick={(e) => {
-        // Only close if the backdrop itself was clicked
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
     >
-      <div className="w-full max-w-4xl invoice-printable-wrapper" onClick={e => e.stopPropagation()}>
-        {/* Action Bar - Hidden on Print */}
-        <div className="bg-white rounded-t-lg px-6 py-3.5 border-b border-slate-200 print:hidden sticky top-4 z-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Invoice Details</h2>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handlePrint}
-                className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                Print
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleDownloadPDF}
-                className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                PDF
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleShare}
-                className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onClose}
-                className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Close
-              </Button>
-            </div>
+      <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col invoice-printable-wrapper print:shadow-none print:rounded-none print:max-h-none print:overflow-visible" onClick={e => e.stopPropagation()}>
+        {/* Header - not sticky, same look as InvoiceDetail */}
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white print:hidden shrink-0">
+          <h2 className="text-xl font-bold text-slate-900">Invoice Details</h2>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handlePrint}
+              className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleDownloadPDF}
+              className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              PDF
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleShare}
+              className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onClose}
+              className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Close
+            </Button>
           </div>
         </div>
 
-        {/* Invoice Content - Printable */}
-        <Card className="p-12 bg-white rounded-b-lg print:shadow-none print:rounded-none">
+        {/* Invoice Content - scrollable body */}
+        <div className="flex-1 overflow-y-auto print:overflow-visible">
+        <div className="bg-white p-12 print:pt-0">
           {/* Header with Logo and Company Info */}
           <div className="flex items-start gap-4 mb-8 pb-6 border-b border-slate-200 print-keep-together">
             <div className="w-16 h-16 bg-theme rounded-xl flex items-center justify-center flex-shrink-0">
@@ -143,14 +140,14 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
             </div>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-slate-900 mb-3">MOMENTUM AUTOWORKS</h1>
-              <div className="grid grid-cols-3 gap-8 text-sm">
+              <div className="grid grid-cols-3 gap-x-8 text-sm">
                 <div>
                   <p className="text-slate-500 font-medium mb-1">Email</p>
                   <p className="text-slate-700">info@momentumauto.pk</p>
                 </div>
                 <div>
                   <p className="text-slate-500 font-medium mb-1">Address</p>
-                  <p className="text-slate-700">Soan Gardens, Islamabad, Pakistan</p>
+                  <p className="text-slate-700 whitespace-nowrap">Soan Gardens, Islamabad</p>
                 </div>
                 <div>
                   <p className="text-slate-500 font-medium mb-1">Phone</p>
@@ -189,7 +186,7 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
               </div>
               <div className="grid grid-cols-[140px_1fr] gap-2">
                 <span className="text-sm font-semibold text-slate-700">Payment Method:</span>
-                <span className="text-sm text-slate-900">{invoiceData.paymentMethod || 'CARD/POS'}</span>
+                <span className="text-sm text-slate-900">{(invoiceData.paymentMethod || 'Card').trim().toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}</span>
               </div>
             </div>
 
@@ -220,7 +217,6 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                 <thead>
                   <tr className="border-b border-slate-200">
                     <th className="text-left text-sm font-semibold text-slate-600 pb-3 px-4">Description</th>
-                    <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-24">Quantity</th>
                     <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Price</th>
                     <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Amount</th>
                   </tr>
@@ -229,7 +225,6 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                   {invoiceData.services.map((service, index) => (
                     <tr key={service.id} className={index !== invoiceData.services.length - 1 ? "border-b border-slate-100" : ""}>
                       <td className="text-sm text-slate-700 py-3 px-4">{service.name}</td>
-                      <td className="text-sm text-slate-700 py-3 px-4 text-right">{service.quantity}</td>
                       <td className="text-sm text-slate-700 py-3 px-4 text-right">₨{service.price.toLocaleString()}</td>
                       <td className="text-sm font-medium text-slate-900 py-3 px-4 text-right">
                         ₨{service.amount.toLocaleString()}
@@ -314,25 +309,13 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
               This is a computer-generated invoice and does not require a signature.
             </p>
           </div>
-        </Card>
+        </div>
+        </div>
       </div>
 
-      {/* Print Styles */}
+      {/* Print Styles - inline only for this component; globals handle multi-page flow */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          .invoice-printable-wrapper,
-          .invoice-printable-wrapper * {
-            visibility: visible;
-          }
-          .invoice-printable-wrapper {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
           .print\\:hidden {
             display: none !important;
           }

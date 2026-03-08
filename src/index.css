@@ -4984,12 +4984,21 @@ html {
 }
 
 @media print {
+  /* Show only the invoice; hide rest of page so layout and pagination work */
+  body * {
+    visibility: hidden !important;
+  }
+  .invoice-printable-wrapper,
+  .invoice-printable-wrapper * {
+    visibility: visible !important;
+  }
+
   body > :not(:has(.invoice-printable-wrapper)), nav, header, footer:not(.invoice-printable-wrapper footer), .sidebar, .navigation, [role="navigation"], [data-radix-popper-content-wrapper] {
     display: none !important;
   }
 
   @page {
-    margin: .5cm;
+    margin: 12mm;
     size: A4 portrait;
   }
 
@@ -5020,7 +5029,8 @@ html {
   }
 
   .fixed.inset-0:has(.invoice-printable-wrapper) > div {
-    max-width: 100% !important;
+    max-width: none !important;
+    width: 100% !important;
     height: auto !important;
     max-height: none !important;
     box-shadow: none !important;
@@ -5036,12 +5046,36 @@ html {
     max-height: none !important;
   }
 
+  /* Keep invoice layout: fit A4 width so format doesn't break; allow multi-page flow */
   .invoice-printable-wrapper {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 190mm !important;
+    margin: 0 auto !important;
     height: auto !important;
     max-height: none !important;
-    margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  .invoice-print,
+  #invoice-printable {
+    width: 100% !important;
+    max-width: 190mm !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .invoice-printable-wrapper table,
+  .invoice-printable-wrapper .invoice-table {
+    max-width: 100% !important;
+    table-layout: auto !important;
   }
 
   button {

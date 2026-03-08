@@ -19,6 +19,8 @@ async function testLogin(email, password, description) {
     }
 }
 
+// function run Tests()
+
 async function runTests() {
     // Test 1: Correct Credentials
     await testLogin('admin@digitalhack.us', 'Qwerty@12345', 'Correct Credentials');

@@ -19,6 +19,7 @@ const InvoiceSchema = new mongoose.Schema({
   make: String,
   model: String,
   plate: String,
+  carYear: String,
   date: String,
   amount: Number,
   status: String,
@@ -46,6 +47,7 @@ const CustomerSchema = new mongoose.Schema({
   invoiceHistory: [String],
 });
 
+
 const VehicleSchema = new mongoose.Schema({
   id: { type: String, required: true },
   customerId: { type: String, required: true },
@@ -58,12 +60,16 @@ const VehicleSchema = new mongoose.Schema({
 const ProductSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   name: String,
+  brand: String,
   category: String,
   salePrice: Number,
   lastCostPrice: Number,
   averageCostPrice: Number,
   stockQuantity: Number,
   status: String,
+  vendorId: String,
+  vendorName: String,
+  lastStockInDate: String,
 });
 
 const ServiceSchema = new mongoose.Schema({
@@ -111,6 +117,127 @@ const VendorPaymentSchema = new mongoose.Schema({
   notes: String,
 });
 
+const UserSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  isVerified: { type: Boolean, default: false },
+  otp: { type: String, default: null },
+  otpExpiry: { type: Date, default: null },
+  createdAt: { type: Date, default: Date.now },
+});
+
+// Finance: Expenses (independent of invoices/inventory)
+const ExpenseSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  category: { type: String, required: true },
+  amount: { type: Number, required: true },
+  date: { type: String, required: true },
+  payment_method: { type: String, enum: ["cash", "card", "bank", "online"], required: true },
+  notes: String,
+  recorded_by: String,
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+});
+
+// Finance: Utility types (seed: Electricity, Water, Rent, Internet, Other)
+const UtilityTypeSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  created_at: { type: Date, default: Date.now },
+});
+
+// Finance: Utilities (independent of invoices/inventory)
+const UtilitySchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  utility_type_id: { type: String, required: true },
+  billing_period_start: { type: String, required: true },
+  billing_period_end: { type: String, required: true },
+  amount: { type: Number, required: true },
+  due_date: { type: String, required: true },
+  status: { type: String, enum: ["unpaid", "paid"], default: "unpaid" },
+  payment_method: { type: String, enum: ["cash", "card", "bank", "online"], default: null },
+  paid_at: { type: Date, default: null },
+  notes: String,
+  recorded_by: String,
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+});
+
+// Finance: Salaries - Employees (independent of invoices)
+const EmployeeSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  phone: String,
+  role: String,
+  monthly_salary: { type: Number, required: true },
+  joining_date: String,
+  is_active: { type: Boolean, default: true },
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+});
+
+// Finance: Salaries - Salary records (snapshot per employee per month)
+const SalaryRecordSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  employee_id: { type: String, required: true },
+  month: { type: Number, required: true },
+  year: { type: Number, required: true },
+  salary_amount: { type: Number, required: true },
+  bonus: { type: Number, default: 0 },
+  deduction: { type: Number, default: 0 },
+  total_salary: { type: Number, required: true },
+  payment_status: { type: String, enum: ["unpaid", "paid"], default: "unpaid" },
+  payment_method: { type: String, default: null },
+  paid_at: { type: Date, default: null },
+  notes: String,
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+});
+
+SalaryRecordSchema.index({ employee_id: 1, month: 1, year: 1 }, { unique: true });
+
+const dailyCloseLineSchema = new mongoose.Schema(
+  { description: String, amount: Number },
+  { _id: false }
+);
+
+const dailyCloseInvoiceSchema = new mongoose.Schema(
+  { invoiceId: String, invoiceNumber: String, customer: String, amount: Number, paymentMethod: String },
+  { _id: false }
+);
+
+const dailyClosePurchaseSchema = new mongoose.Schema(
+  { stockInId: String, vendorName: String, totalAmount: Number },
+  { _id: false }
+);
+
+const dailyCloseVendorPaymentSchema = new mongoose.Schema(
+  { paymentId: String, vendorName: String, amount: Number, method: String },
+  { _id: false }
+);
+
+const DailyCloseSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  date: { type: String, required: true, unique: true },
+  paidInvoices: [dailyCloseInvoiceSchema],
+  totalRevenue: { type: Number, default: 0 },
+  inventoryPurchases: [dailyClosePurchaseSchema],
+  vendorPayments: [dailyCloseVendorPaymentSchema],
+  salaries: [dailyCloseLineSchema],
+  utilities: [dailyCloseLineSchema],
+  otherExpenses: [dailyCloseLineSchema],
+  totalPurchases: { type: Number, default: 0 },
+  totalVendorPayments: { type: Number, default: 0 },
+  totalSalaries: { type: Number, default: 0 },
+  totalUtilities: { type: Number, default: 0 },
+  totalOtherExpenses: { type: Number, default: 0 },
+  totalExpenses: { type: Number, default: 0 },
+  netProfit: { type: Number, default: 0 },
+  closedAt: { type: Date, default: Date.now },
+  closedBy: { type: String, default: "Admin" },
+});
+
 // Index for vehicle lookups
 VehicleSchema.index({ customerId: 1, id: 1 });
 
@@ -122,6 +249,13 @@ const Service = mongoose.model("Service", ServiceSchema);
 const Vendor = mongoose.model("Vendor", VendorSchema);
 const StockIn = mongoose.model("StockIn", StockInSchema);
 const VendorPayment = mongoose.model("VendorPayment", VendorPaymentSchema);
+const User = mongoose.model("User", UserSchema);
+const Expense = mongoose.model("Expense", ExpenseSchema);
+const UtilityType = mongoose.model("UtilityType", UtilityTypeSchema);
+const Utility = mongoose.model("Utility", UtilitySchema);
+const Employee = mongoose.model("Employee", EmployeeSchema);
+const SalaryRecord = mongoose.model("SalaryRecord", SalaryRecordSchema);
+const DailyClose = mongoose.model("DailyClose", DailyCloseSchema);
 
 module.exports = {
   Invoice,
@@ -132,4 +266,11 @@ module.exports = {
   Vendor,
   StockIn,
   VendorPayment,
+  User,
+  Expense,
+  UtilityType,
+  Utility,
+  Employee,
+  SalaryRecord,
+  DailyClose
 };

@@ -14,6 +14,12 @@ import { Settings } from "./components/Settings";
 import { Products } from "./components/Products";
 import { StockIn } from "./components/StockIn";
 import { Vendors } from "./components/Vendors";
+import { Expenses } from "./components/Expenses";
+import { Utilities } from "./components/Utilities";
+import { Salaries } from "./components/Salaries";
+import { SalariesEmployees } from "./components/SalariesEmployees";
+import { SalaryRecords } from "./components/SalaryRecords";
+import { DailyClose } from "./components/DailyClose";
 
 const AUTH_TOKEN_KEY = "momentumAuthToken";
 const REMEMBER_ME_KEY = "momentumRememberMe";
@@ -30,7 +36,13 @@ type Page =
   | "settings"
   | "products"
   | "stock-in"
-  | "vendors";
+  | "vendors"
+  | "expenses"
+  | "utilities"
+  | "salaries"
+  | "salaries-employees"
+  | "salaries-records"
+  | "daily-close";
 
 function getInitialPage(): Page {
   if (typeof window === "undefined") return "login";
@@ -47,6 +59,7 @@ function getInitialPage(): Page {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>(getInitialPage);
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
+  const [invoiceCustomerId, setInvoiceCustomerId] = useState<string | null>(null);
 
   const handleLogin = () => {
     // Token is already stored by Login component
@@ -61,8 +74,14 @@ export default function App() {
     setCurrentPage("login");
   };
 
-  const handleNavigate = (page: string) => {
+  const handleNavigate = (page: string, options?: { customerId?: string }) => {
     setCurrentPage(page as Page);
+    if (page !== "invoices") {
+      setShowCreateInvoice(false);
+      setInvoiceCustomerId(null);
+    } else {
+      setInvoiceCustomerId(options?.customerId ?? null);
+    }
   };
 
   const handleBackFromInvoice = () => {
@@ -72,16 +91,19 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard":
-        return <Dashboard onNavigate={handleNavigate} />;
+        return <Dashboard onNavigate={handleNavigate} setShowCreateInvoice={setShowCreateInvoice} />;
       case "customers":
         return <Customers onNavigate={handleNavigate} setShowCreateInvoice={setShowCreateInvoice} />;
       case "vehicles":
-        return <Vehicles />;
+        return <Vehicles onNavigate={handleNavigate} setShowCreateInvoice={setShowCreateInvoice} />;
       case "invoices":
         return (
           <Invoices
             showCreateInvoice={showCreateInvoice}
             setShowCreateInvoice={setShowCreateInvoice}
+            filterCustomerId={invoiceCustomerId}
+            onClearCustomerFilter={() => setInvoiceCustomerId(null)}
+            onNavigate={handleNavigate}
           />
         );
       case "job-cards":
@@ -98,6 +120,18 @@ export default function App() {
         return <StockIn />;
       case "vendors":
         return <Vendors />;
+      case "expenses":
+        return <Expenses />;
+      case "utilities":
+        return <Utilities />;
+      case "salaries":
+        return <Salaries onNavigate={handleNavigate} />;
+      case "salaries-employees":
+        return <SalariesEmployees onNavigate={handleNavigate} />;
+      case "salaries-records":
+        return <SalaryRecords onNavigate={handleNavigate} />;
+      case "daily-close":
+        return <DailyClose />;
       default:
         return <Dashboard />;
     }

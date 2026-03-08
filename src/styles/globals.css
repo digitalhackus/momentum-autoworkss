@@ -40,10 +40,20 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   
-  /* Theme Colors - Default Blue */
-  --primary-color: #2563eb;
-  --primary-color-light: rgb(77, 139, 235);
-  --primary-color-dark: rgb(7, 69, 205);
+  /* Theme Colors - Default Orange */
+  --primary-color: #ea580c;           /* Tailwind orange-600 */
+  --primary-color-light: #f97316;     /* Tailwind orange-500 */
+  --primary-color-dark: #c2410c;      /* Tailwind orange-700 */
+
+  /* Calendar / date picker (uses theme) */
+  --calendar-surface: var(--background);
+  --calendar-border: var(--border);
+  --calendar-text: var(--foreground);
+  --calendar-text-muted: var(--muted-foreground);
+  --calendar-primary: var(--primary-color);
+  --calendar-primary-foreground: #ffffff;
+  --calendar-primary-hover: var(--primary-color-dark);
+  --calendar-primary-muted: color-mix(in srgb, var(--primary-color) 12%, transparent);
 }
 
 .dark {
@@ -195,18 +205,52 @@ html {
 
 /* Print Styles for Invoice */
 @media print {
-  /* A4 page setup */
+  /* A4 page setup - consistent margins */
   @page {
     size: A4 portrait;
     margin: 12mm;
   }
   
-  /* Ensure invoice can flow across pages */
-  .invoice-print,
+  /* Show only the invoice (hide rest of page) so it can flow to multiple pages */
+  body * {
+    visibility: hidden !important;
+  }
+  .invoice-printable-wrapper,
+  .invoice-printable-wrapper * {
+    visibility: visible !important;
+  }
+  /* Keep wrapper in normal flow; constrain width to A4 so layout doesn't break */
   .invoice-printable-wrapper {
-    width: auto !important;
-    max-width: none !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 190mm !important;
+    margin: 0 auto !important;
+    max-height: none !important;
+    height: auto !important;
     overflow: visible !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Invoice content: same width constraint so columns and tables stay correct */
+  .invoice-print,
+  #invoice-printable {
+    width: 100% !important;
+    max-width: 190mm !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Prevent tables/grids from overflowing and breaking layout */
+  .invoice-printable-wrapper table,
+  .invoice-printable-wrapper .invoice-table {
+    max-width: 100% !important;
+    table-layout: auto !important;
   }
   
   /* Table pagination behavior */
@@ -234,11 +278,6 @@ html {
     break-inside: avoid !important;
   }
   
-  /* Hide everything except the invoice */
-  body > *:not(:has(.invoice-printable-wrapper)) {
-    display: none !important;
-  }
-  
   /* Hide any elements with these classes */
   nav,
   header,
@@ -256,7 +295,7 @@ html {
     size: A4 portrait;
   }
   
-  /* Reset body */
+  /* Reset body and html so height is not constrained */
   body {
     margin: 0 !important;
     padding: 0 !important;
@@ -273,7 +312,7 @@ html {
     overflow: visible !important;
   }
   
-  /* Hide modal backdrop and make it static */
+  /* Modal backdrop: static and full flow so invoice can paginate */
   .fixed.inset-0:has(.invoice-printable-wrapper) {
     position: static !important;
     background: transparent !important;
@@ -284,10 +323,10 @@ html {
     overflow: visible !important;
   }
   
-  /* Reset the modal container to look like normal content */
+  /* Modal container: no max-height, allow content to flow */
   .fixed.inset-0:has(.invoice-printable-wrapper) > div {
     position: static !important;
-    max-width: 100% !important;
+    max-width: none !important;
     max-height: none !important;
     height: auto !important;
     overflow: visible !important;
@@ -298,18 +337,9 @@ html {
     padding: 0 !important;
   }
   
-  /* Reset ALL divs that might be constraining */
+  /* No height constraint on any ancestor of the invoice */
   .fixed.inset-0:has(.invoice-printable-wrapper) * {
     max-height: none !important;
-  }
-  
-  /* Reset the invoice wrapper */
-  .invoice-printable-wrapper {
-    overflow: visible !important;
-    max-height: none !important;
-    height: auto !important;
-    padding: 0 !important;
-    margin: 0 !important;
   }
   
   /* Hide buttons and print:hidden elements */
@@ -457,4 +487,73 @@ input[type="number"] {
   .hover\:border-theme-300:hover {
     border-color: color-mix(in srgb, var(--primary-color) 40%, white);
   }
+}
+
+/* Themed date picker calendar – matches app design system */
+[data-themed-calendar] {
+  font-family: inherit;
+}
+
+/* Calendar header month/year triggers – clickable, theme hover */
+[data-themed-calendar] .calendar-header-trigger {
+  cursor: pointer;
+  color: var(--foreground);
+}
+[data-themed-calendar] .calendar-header-trigger:hover {
+  color: var(--primary-color);
+}
+
+/* Year inline-edit input */
+[data-themed-calendar] .calendar-header-year-input {
+  font-variant-numeric: tabular-nums;
+}
+[data-themed-calendar] .calendar-header-year-input::placeholder {
+  color: var(--muted-foreground);
+}
+
+/* Calendar header dropdowns – themed, rounded, shadow, animation */
+[data-themed-calendar] .calendar-header-dropdown {
+  background-color: var(--background);
+  border-color: var(--border);
+  color: var(--foreground);
+  animation: calendar-dropdown-in 0.15s ease-out;
+}
+@keyframes calendar-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+[data-themed-calendar] [data-rdp-day]:focus-visible {
+  outline: none;
+}
+
+/* Today's date: filled circle with theme color */
+[data-themed-calendar] .rdp-day_today {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+
+[data-themed-calendar] .rdp-day_today:hover {
+  background-color: var(--primary-color-dark) !important;
+}
+
+/* Selected day always uses theme color (overrides any default outline) */
+[data-themed-calendar] [data-rdp-day][aria-selected="true"] {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+[data-themed-calendar] [data-rdp-day][aria-selected="true"]:hover {
+  background-color: var(--primary-color-dark) !important;
 }

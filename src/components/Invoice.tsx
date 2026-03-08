@@ -2,6 +2,7 @@ import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 import { Printer, Download, Mail, Wrench } from "lucide-react";
+import { formatDisplayDate } from "../utils/dateFormat";
 
 const invoiceData = {
   invoiceNumber: "INV-001234",
@@ -71,7 +72,7 @@ export function Invoice() {
               <p className="text-sm text-gray-600">Invoice Number</p>
               <p className="font-semibold">{invoiceData.invoiceNumber}</p>
               <p className="text-sm text-gray-600 mt-2">Date</p>
-              <p>{invoiceData.date}</p>
+              <p>{formatDisplayDate(invoiceData.date)}</p>
             </div>
           </div>
 

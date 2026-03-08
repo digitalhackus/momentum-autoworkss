@@ -15,6 +15,8 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 
+// interface for the customer
+
 interface AddCustomerProps {
   onClose?: () => void;
   onSubmit?: (data: FormData) => void;
@@ -71,7 +73,7 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear error for this field
     if (errors[field]) {
       setErrors(prev => {
@@ -96,29 +98,29 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.fullName) newErrors.fullName = "Full name is required";
     if (!formData.email) newErrors.email = "Email is required";
     else if (!validateEmail(formData.email)) newErrors.email = "Invalid email format";
     if (!formData.phone) newErrors.phone = "Phone number is required";
     else if (!validatePhone(formData.phone)) newErrors.phone = "Invalid phone format";
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     // Submit form
     if (onSubmit) {
       onSubmit(formData);
     }
-    
+
     if (onClose) {
       onClose();
     }
@@ -126,16 +128,16 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
 
   const handleSaveAndAddVehicle = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     // Submit form and navigate to vehicles
     if (onSaveAndAddVehicle) {
       onSaveAndAddVehicle(formData);
     }
-    
+
     if (onClose) {
       onClose();
     }
@@ -147,7 +149,7 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
       <div className="p-6 pb-4 flex items-center justify-between border-b">
         <h2 className="text-lg">{mode === "edit" ? "Edit Customer" : "Add New Customer"}</h2>
         {onClose && (
-          <button 
+          <button
             onClick={onClose}
             className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
           >
@@ -165,9 +167,9 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName" className="text-xs">Full Name *</Label>
-                <Input 
-                  id="fullName" 
-                  placeholder="John Doe" 
+                <Input
+                  id="fullName"
+                  placeholder="John Doe"
                   value={formData.fullName}
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
                   className={`h-9 text-sm ${errors.fullName ? "border-red-500" : ""}`}
@@ -177,10 +179,10 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-xs">Email Address *</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="john@example.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="john@example.com"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className={`h-9 text-sm ${errors.email ? "border-red-500" : ""}`}
@@ -190,10 +192,10 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
 
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-xs">Phone Number *</Label>
-                <Input 
-                  id="phone" 
-                  type="tel" 
-                  placeholder="+92 XXXXXXXXXX" 
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+92 XXXXXXXXXX"
                   value={formData.phone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   maxLength={14}
@@ -210,9 +212,9 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="street" className="text-xs">Street Address</Label>
-                <Input 
-                  id="street" 
-                  placeholder="123 Main St" 
+                <Input
+                  id="street"
+                  placeholder="123 Main St"
                   value={formData.street}
                   onChange={(e) => handleInputChange('street', e.target.value)}
                   className="h-9 text-sm"
@@ -221,9 +223,9 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
 
               <div className="space-y-2">
                 <Label htmlFor="area" className="text-xs">Area / Neighborhood</Label>
-                <Input 
-                  id="area" 
-                  placeholder="Soan Garden" 
+                <Input
+                  id="area"
+                  placeholder="Soan Garden"
                   value={formData.area}
                   onChange={(e) => handleInputChange('area', e.target.value)}
                   className="h-9 text-sm"
@@ -232,9 +234,9 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
 
               <div className="space-y-2">
                 <Label htmlFor="city" className="text-xs">City</Label>
-                <Input 
-                  id="city" 
-                  placeholder="Islamabad" 
+                <Input
+                  id="city"
+                  placeholder="Islamabad"
                   value={formData.city}
                   onChange={(e) => handleInputChange('city', e.target.value)}
                   className="h-9 text-sm"
@@ -243,9 +245,9 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
 
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="state" className="text-xs">State / Province</Label>
-                <Input 
-                  id="state" 
-                  placeholder="Punjab" 
+                <Input
+                  id="state"
+                  placeholder="Punjab"
                   value={formData.state}
                   onChange={(e) => handleInputChange('state', e.target.value)}
                   className="h-9 text-sm"
@@ -298,8 +300,8 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
                 Save Customer
               </Button>
               {showSaveAndAddVehicle && (
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   onClick={handleSaveAndAddVehicle}
                   className="flex-1 bg-green-600 hover:bg-green-700"
                 >

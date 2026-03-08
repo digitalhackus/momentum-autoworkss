@@ -6,6 +6,7 @@ const {
   getVehiclesByCustomerId,
   addVehicle,
   updateVehicle,
+  deleteVehicle,
   addCustomer,
   updateCustomer,
   deleteCustomer,
@@ -40,6 +41,15 @@ router.patch("/:customerId/vehicles/:vehicleId", express.json(), async (req, res
   const updated = await updateVehicle(customerId, vehicleId, req.body);
   if (!updated) return res.status(404).json({ error: "Vehicle not found" });
   res.json(updated);
+});
+
+router.delete("/:customerId/vehicles/:vehicleId", async (req, res) => {
+  const { customerId, vehicleId } = req.params;
+  const c = await getCustomerById(customerId);
+  if (!c) return res.status(404).json({ error: "Customer not found" });
+  const ok = await deleteVehicle(customerId, vehicleId);
+  if (!ok) return res.status(404).json({ error: "Vehicle not found" });
+  res.status(204).end();
 });
 
 router.get("/:id", async (req, res) => {

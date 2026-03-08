@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useData } from "../contexts/DataContext";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -7,7 +7,6 @@ import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Separator } from "./ui/separator";
 import { toast } from "sonner";
@@ -25,106 +24,45 @@ import {
   UserPlus,
   Mail,
   Phone,
-  Upload,
-  X,
-  ImageIcon,
   AlertCircle
 } from "lucide-react";
 import { motion } from "motion/react";
 import { VehicleProfile } from "./VehicleProfile";
 
-const vehicles = [
-  {
-    id: "VEH-001",
-    make: "Toyota",
-    model: "Camry",
-    year: "2021",
-    plate: "ABC-1234",
-    owner: "John Smith",
-    ownerId: "CUST-001",
-    mileage: "45,230 km",
-    lastService: "2024-10-15",
-    nextService: "2025-01-15",
-    oilType: "5W-30 Synthetic",
-    serviceHistory: 8,
-    status: "Active"
-  },
-  {
-    id: "VEH-002",
-    make: "Honda",
-    model: "Civic",
-    year: "2020",
-    plate: "XYZ-5678",
-    owner: "Sarah Johnson",
-    ownerId: "CUST-002",
-    mileage: "62,450 km",
-    lastService: "2024-10-20",
-    nextService: "2025-01-20",
-    oilType: "0W-20 Synthetic",
-    serviceHistory: 12,
-    status: "Active"
-  },
-  {
-    id: "VEH-003",
-    make: "Ford",
-    model: "F-150",
-    year: "2022",
-    plate: "DEF-9012",
-    owner: "Mike Wilson",
-    ownerId: "CUST-003",
-    mileage: "28,900 km",
-    lastService: "2024-09-10",
-    nextService: "2024-12-10",
-    oilType: "5W-20 Conventional",
-    serviceHistory: 5,
-    status: "Due"
-  },
-  {
-    id: "VEH-004",
-    make: "Tesla",
-    model: "Model 3",
-    year: "2023",
-    plate: "GHI-3456",
-    owner: "Emily Davis",
-    ownerId: "CUST-004",
-    mileage: "15,600 km",
-    lastService: "2024-10-25",
-    nextService: "2025-04-25",
-    oilType: "N/A (Electric)",
-    serviceHistory: 3,
-    status: "Active"
-  },
-  {
-    id: "VEH-005",
-    make: "BMW",
-    model: "X5",
-    year: "2021",
-    plate: "JKL-7890",
-    owner: "Robert Brown",
-    ownerId: "CUST-005",
-    mileage: "55,780 km",
-    lastService: "2024-08-30",
-    nextService: "2024-11-30",
-    oilType: "5W-30 Full Synthetic",
-    serviceHistory: 10,
-    status: "Overdue"
-  },
-];
+type DisplayVehicle = {
+  id: string;
+  make: string;
+  model: string;
+  year?: string;
+  plate: string;
+  owner: string;
+  ownerId: string;
+  mileage?: string;
+  lastService?: string;
+  nextService?: string;
+  oilType?: string;
+  serviceHistory?: number;
+  status?: string;
+};
 
 type CustomerOption = { id: string; name: string; email?: string; phone: string };
+interface VehiclesProps {
+  onNavigate?: (page: string) => void;
+  setShowCreateInvoice?: (show: boolean) => void;
+}
 
-export function Vehicles() {
-  const { customers, addCustomer, addVehicle } = useData();
+export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {}) {
+  const { customers, invoices, addCustomer, addVehicle, getCustomerVehicles, deleteVehicle } = useData();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
   const [step, setStep] = useState<"customer" | "newCustomer" | "vehicle">("customer");
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<typeof vehicles[0] | null>(null);
-  const [vehicleImage, setVehicleImage] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<DisplayVehicle | null>(null);
   const [showOwnerAlert, setShowOwnerAlert] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+  const [vehicles, setVehicles] = useState<DisplayVehicle[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
 
   // New customer form state (used when adding vehicle and creating customer in same flow)
   const [newCustomerForm, setNewCustomerForm] = useState({
@@ -137,6 +75,79 @@ export function Vehicles() {
     state: "",
   });
 
+  const totalVehiclesCount = customers.reduce((sum, c) => {
+    const n = typeof c.vehicles === "number" ? c.vehicles : Number(c.vehicles);
+    return sum + (isNaN(n) ? 0 : n);
+  }, 0);
+
+  const activeServicesCount = invoices
+    .filter((inv) => inv.status !== "Paid")
+    .reduce((sum, inv) => sum + (typeof inv.servicesCount === "number" ? inv.servicesCount : 0), 0);
+
+  const daysBetween = (dateStr: string) => {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 0;
+    const diffMs = Date.now() - d.getTime();
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  };
+
+  const serviceDueCount = customers.filter((c) => {
+    const days = daysBetween(c.lastVisit);
+    return days >= 90 && days < 180;
+  }).length;
+
+  const overdueCount = customers.filter((c) => {
+    const days = daysBetween(c.lastVisit);
+    return days >= 180;
+  }).length;
+
+  useEffect(() => {
+    try {
+      const newCustomerId = localStorage.getItem("newCustomerId");
+      if (newCustomerId) {
+        const customer = customers.find(c => c.id === newCustomerId);
+        if (customer) {
+          setSelectedCustomer({
+            id: customer.id,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+          });
+          setStep("vehicle");
+        }
+        localStorage.removeItem("newCustomerId");
+      }
+    } catch {}
+  }, [customers]);
+  
+  useEffect(() => {
+    const loadAllVehicles = async () => {
+      setVehiclesLoading(true);
+      try {
+        const all: DisplayVehicle[] = [];
+        for (const c of customers) {
+          const list = await getCustomerVehicles(c.id);
+          for (const v of list) {
+            all.push({
+              id: v.id,
+              make: v.carMake || "",
+              model: v.carModel || "",
+              year: v.carYear || "",
+              plate: v.vehicleNumber || "",
+              owner: c.name,
+              ownerId: c.id,
+              status: "Active",
+              serviceHistory: 0,
+            });
+          }
+        }
+        setVehicles(all);
+      } finally {
+        setVehiclesLoading(false);
+      }
+    };
+    loadAllVehicles();
+  }, [customers, getCustomerVehicles]);
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
     customer.phone.includes(customerSearch) ||
@@ -203,50 +214,12 @@ export function Vehicles() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setVehicleImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setVehicleImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setVehicleImage(null);
-  };
-
   const handleCloseDialog = () => {
     setIsAddVehicleOpen(false);
     setTimeout(() => {
       setStep("customer");
       setCustomerSearch("");
       setSelectedCustomer(null);
-      setVehicleImage(null);
       setShowOwnerAlert(false);
       setNewCustomerForm({
         fullName: "",
@@ -282,11 +255,33 @@ export function Vehicles() {
           ownerName: selectedVehicle.owner,
         }}
         onClose={handleCloseVehicleProfile}
-        onEdit={() => console.log("Edit vehicle")}
-        onDelete={() => console.log("Delete vehicle")}
-        onViewOwner={(ownerId) => console.log("View owner:", ownerId)}
-        onCreateJobCard={() => console.log("Create job card")}
-        onCreateInvoice={() => console.log("Create invoice")}
+        onEdit={() => toast.info("Edit vehicle coming soon")}
+        onDelete={async () => {
+          if (!selectedVehicle) return;
+          const confirm = window.confirm("Delete this vehicle?");
+          if (!confirm) return;
+          try {
+            await deleteVehicle(selectedVehicle.ownerId, selectedVehicle.id);
+            setVehicles((prev) => prev.filter((v) => v.id !== selectedVehicle.id));
+            toast.success("Vehicle deleted");
+            handleCloseVehicleProfile();
+          } catch (e) {
+            toast.error("Failed to delete vehicle");
+          }
+        }}
+        onViewOwner={(ownerId) => {
+          if (onNavigate) onNavigate("customers");
+          else toast.info("Owner profile navigation");
+        }}
+        onCreateJobCard={() => {
+          if (onNavigate) onNavigate("job-cards");
+          else toast.info("Navigating to Job Cards");
+        }}
+        onCreateInvoice={() => {
+          if (setShowCreateInvoice) setShowCreateInvoice(true);
+          if (onNavigate) onNavigate("invoices");
+          else toast.info("Navigating to Invoices");
+        }}
       />
     );
   }
@@ -524,8 +519,8 @@ export function Vehicles() {
                   <div className="p-4 bg-theme-50 rounded-lg border border-theme-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-theme-600 rounded-full flex items-center justify-center">
-                          <User className="h-5 w-5 text-white" />
+                        <div className="w-10 h-10 bg-theme-100 rounded-full flex items-center justify-center">
+                          <User className="h-5 w-5 text-theme" />
                         </div>
                         <div>
                           <p className="text-sm text-gray-600">Vehicle Owner</p>
@@ -544,110 +539,33 @@ export function Vehicles() {
                   </div>
                 )}
 
-                {/* Vehicle Image Upload */}
-                <div className="space-y-3">
-                  <Label>Vehicle Image</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Image Preview */}
-                    {vehicleImage ? (
-                      <div className="relative aspect-video border-2 border-slate-300 rounded-lg overflow-hidden bg-slate-50">
-                        <img 
-                          src={vehicleImage} 
-                          alt="Vehicle preview" 
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRemoveImage}
-                          className="absolute top-2 right-2 p-1.5 bg-red-600 hover:bg-red-700 rounded-full text-white transition-colors"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="aspect-video border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center bg-slate-50">
-                        <div className="text-center">
-                          <ImageIcon className="h-12 w-12 text-slate-400 mx-auto mb-2" />
-                          <p className="text-sm text-slate-500">No image uploaded</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Upload Zone */}
-                    <div
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      className={`aspect-video border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all ${
-                        isDragging 
-                          ? 'border-blue-400 bg-blue-50' 
-                          : 'border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50'
-                      }`}
-                    >
-                      <label htmlFor="vehicle-image" className="cursor-pointer text-center p-4 w-full h-full flex flex-col items-center justify-center">
-                        <Upload className="h-10 w-10 text-slate-400 mb-3" />
-                        <p className="text-sm font-medium text-slate-700 mb-1">
-                          {isDragging ? 'Drop image here' : 'Click to upload or drag & drop'}
-                        </p>
-                        <p className="text-xs text-slate-500">PNG, JPG up to 5MB</p>
-                        <input
-                          id="vehicle-image"
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg"
-                          className="hidden"
-                          onChange={handleImageUpload}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Basic Vehicle Information */}
                 <div className="space-y-4">
                   <h4 className="font-medium text-slate-900">Basic Information</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="make">Vehicle Make *</Label>
-                      <Input id="make" placeholder="e.g., Toyota, Honda, BMW" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="model">Vehicle Model *</Label>
-                      <Input id="model" placeholder="e.g., Corolla, Civic, X5" required />
-                    </div>
-                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
+                      <Label htmlFor="make">Make *</Label>
+                      <Input id="make" placeholder="e.g., Toyota" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="model">Model *</Label>
+                      <Input id="model" placeholder="e.g., Corolla" required />
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="year">Year *</Label>
-                      <Input 
-                        id="year" 
-                        type="number" 
-                        placeholder="2024" 
+                      <Input
+                        id="year"
+                        type="number"
+                        placeholder="e.g., 2021"
                         min="1900"
-                        max="2025"
-                        required 
+                        max="2030"
+                        required
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="type">Vehicle Type *</Label>
-                      <Select>
-                        <SelectTrigger id="type">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sedan">Sedan</SelectItem>
-                          <SelectItem value="suv">SUV</SelectItem>
-                          <SelectItem value="hatchback">Hatchback</SelectItem>
-                          <SelectItem value="truck">Truck</SelectItem>
-                          <SelectItem value="van">Van</SelectItem>
-                          <SelectItem value="coupe">Coupe</SelectItem>
-                          <SelectItem value="convertible">Convertible</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="plate">License Plate *</Label>
-                      <Input id="plate" placeholder="ABC-1234" required />
-                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="plate">Registration Number *</Label>
+                    <Input id="plate" placeholder="e.g., ISB-1234" required />
                   </div>
                 </div>
 
@@ -655,14 +573,6 @@ export function Vehicles() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleBackToCustomerSearch}
-                  >
-                    Back to Owner
-                  </Button>
                   <Button
                     type="submit"
                     className="flex-1 bg-theme hover:bg-theme-dark"
@@ -677,17 +587,31 @@ export function Vehicles() {
                       const yearInput = (document.getElementById("year") as HTMLInputElement | null)?.value || "";
                       const plateInput = (document.getElementById("plate") as HTMLInputElement | null)?.value || "";
                       if (!makeInput.trim() || !modelInput.trim() || !plateInput.trim()) {
-                        toast.error("Please enter vehicle make, model and license plate.");
+                        toast.error("Please enter make, model and registration number.");
                         return;
                       }
                       try {
-                        await addVehicle(selectedCustomer.id, {
+                        const created = await addVehicle(selectedCustomer.id, {
                           carMake: makeInput.trim(),
                           carModel: modelInput.trim(),
                           carYear: yearInput.trim() || undefined,
                           vehicleNumber: plateInput.trim(),
                         });
                         toast.success("Vehicle added for this customer.");
+                        setVehicles((prev) => [
+                          ...prev,
+                          {
+                            id: created.id,
+                            make: created.carMake || "",
+                            model: created.carModel || "",
+                            year: created.carYear || "",
+                            plate: created.vehicleNumber || "",
+                            owner: selectedCustomer.name,
+                            ownerId: selectedCustomer.id,
+                            status: "Active",
+                            serviceHistory: 0,
+                          },
+                        ]);
                         handleCloseDialog();
                       } catch (err) {
                         console.error("Failed to add vehicle from Vehicles page:", err);
@@ -717,7 +641,7 @@ export function Vehicles() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Total Vehicles</p>
-                  <p className="text-3xl">518</p>
+                  <p className="text-3xl">{totalVehiclesCount}</p>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-lg">
                   <Car className="h-6 w-6 text-blue-600" />
@@ -737,7 +661,7 @@ export function Vehicles() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Active Services</p>
-                  <p className="text-3xl">342</p>
+                  <p className="text-3xl">{activeServicesCount}</p>
                 </div>
                 <div className="p-3 bg-green-100 rounded-lg">
                   <Wrench className="h-6 w-6 text-green-600" />
@@ -757,7 +681,7 @@ export function Vehicles() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Service Due</p>
-                  <p className="text-3xl">45</p>
+                  <p className="text-3xl">{serviceDueCount}</p>
                 </div>
                 <div className="p-3 bg-orange-100 rounded-lg">
                   <Calendar className="h-6 w-6 text-orange-600" />
@@ -777,7 +701,7 @@ export function Vehicles() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Overdue</p>
-                  <p className="text-3xl">12</p>
+                  <p className="text-3xl">{overdueCount}</p>
                 </div>
                 <div className="p-3 bg-red-100 rounded-lg">
                   <Calendar className="h-6 w-6 text-red-600" />

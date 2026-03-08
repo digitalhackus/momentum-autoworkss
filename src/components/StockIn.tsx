@@ -27,6 +27,7 @@ interface StockInItemForm {
   productName: string;
   quantity: string;
   costPrice: string;
+  salePrice: string;
 }
 
 export function StockIn() {
@@ -57,7 +58,7 @@ export function StockIn() {
   const addItem = () => {
     setItems([
       ...items,
-      { productId: "", productName: "", quantity: "", costPrice: "" },
+      { productId: "", productName: "", quantity: "", costPrice: "", salePrice: "" },
     ]);
   };
 
@@ -126,7 +127,7 @@ export function StockIn() {
     }, 0);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validation
     if (!selectedVendorId) {
       alert("Please select a vendor");
@@ -143,8 +144,10 @@ export function StockIn() {
         !item.productId ||
         !item.quantity ||
         !item.costPrice ||
+      !item.salePrice ||
         parseFloat(item.quantity) <= 0 ||
-        parseFloat(item.costPrice) <= 0
+      parseFloat(item.costPrice) <= 0 ||
+      parseFloat(item.salePrice) <= 0
     );
 
     if (invalidItems.length > 0) {
@@ -163,6 +166,7 @@ export function StockIn() {
         productName: product?.name || item.productName,
         quantity: parseFloat(item.quantity),
         costPrice: parseFloat(item.costPrice),
+      salePrice: parseFloat(item.salePrice),
         total: parseFloat(item.quantity) * parseFloat(item.costPrice),
       };
     });
@@ -170,12 +174,13 @@ export function StockIn() {
     const totalAmount = calculateTotal();
 
     // Add stock in record
-    addStockIn({
+    try {
+      await addStockIn({
       vendorId: selectedVendorId,
       vendorName: vendor.name,
       items: stockInItems,
       totalAmount,
-    });
+      });
 
     // Update products' stock and cost
     items.forEach((item) => {
@@ -201,19 +206,23 @@ export function StockIn() {
           averageCostPrice: newAvgCost,
           status,
           vendorId: selectedVendorId,
+          salePrice: parseFloat(item.salePrice),
         });
       }
     });
 
     // Update vendor balance
-    updateVendor(selectedVendorId, {
+          await updateVendor(selectedVendorId, {
       outstandingBalance: vendor.outstandingBalance + totalAmount,
     });
-
-    // Show success and reset
-    setShowSuccessModal(true);
-    setSelectedVendorId("");
-    setItems([]);
+      // Show success and reset
+      setShowSuccessModal(true);
+      setSelectedVendorId("");
+      setItems([]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to save stock in";
+      alert(msg);
+    }
   };
 
   const selectedVendor = vendors.find((v) => v.id === selectedVendorId);
@@ -245,7 +254,7 @@ export function StockIn() {
             <Label className="text-base font-semibold mb-2 block">
               1. Select Vendor
             </Label>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <select
                 value={selectedVendorId}
                 onChange={(e) => setSelectedVendorId(e.target.value)}
@@ -275,26 +284,26 @@ export function StockIn() {
             )}
           </div>
 
-          {/* Step 2: Add Products - Always visible with table layout */}
+          {/* Step 2: Add Products */}
           <div>
-            <Label className="text-base font-semibold mb-3 block">2. Add Products</Label>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-base font-semibold block">2. Add Products</Label>
+              <Button onClick={addItem} size="sm" className="bg-theme hover:bg-theme-dark h-8">
+                <Plus className="h-4 w-4 mr-1" />
+                Add Product
+              </Button>
+            </div>
 
-            {/* Table Header */}
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
+            {/* Desktop table layout */}
+            <div className="hidden md:block border border-slate-200 rounded-lg overflow-hidden">
               <div className="grid grid-cols-12 gap-3 bg-slate-50 px-4 py-3 border-b border-slate-200 font-medium text-sm text-slate-700 items-center">
                 <div className="col-span-4">Product</div>
                 <div className="col-span-2">Quantity</div>
                 <div className="col-span-2">Cost Price (₨)</div>
-                <div className="col-span-2">Total</div>
-                <div className="col-span-2 text-right">
-                  <Button onClick={addItem} size="sm" className="bg-theme hover:bg-theme-dark h-8">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Product
-                  </Button>
-                </div>
+                <div className="col-span-2">Sale Price (₨)</div>
+                <div className="col-span-1 text-right">Total</div>
+                <div className="col-span-1 text-right">Actions</div>
               </div>
-
-              {/* Product Rows */}
               <div className="divide-y divide-slate-200">
                 {items.length === 0 ? (
                   <div className="px-4 py-8 text-center text-slate-500 text-sm">
@@ -306,9 +315,7 @@ export function StockIn() {
                       <div className="col-span-4">
                         <select
                           value={item.productId}
-                          onChange={(e) =>
-                            updateItem(index, "productId", e.target.value)
-                          }
+                          onChange={(e) => updateItem(index, "productId", e.target.value)}
                           className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                         >
                           <option value="">Select Product</option>
@@ -320,43 +327,21 @@ export function StockIn() {
                         </select>
                       </div>
                       <div className="col-span-2">
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(index, "quantity", e.target.value)
-                          }
-                          placeholder="0"
-                          className="text-sm"
-                        />
+                        <Input type="number" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} placeholder="0" className="text-sm" />
                       </div>
                       <div className="col-span-2">
-                        <Input
-                          type="number"
-                          value={item.costPrice}
-                          onChange={(e) =>
-                            updateItem(index, "costPrice", e.target.value)
-                          }
-                          placeholder="0"
-                          className="text-sm"
-                        />
+                        <Input type="number" value={item.costPrice} onChange={(e) => updateItem(index, "costPrice", e.target.value)} placeholder="0" className="text-sm" />
                       </div>
                       <div className="col-span-2">
-                        <div className="text-sm font-semibold">
-                          ₨
-                          {(
-                            (parseFloat(item.quantity) || 0) *
-                            (parseFloat(item.costPrice) || 0)
-                          ).toLocaleString()}
+                        <Input type="number" value={item.salePrice} onChange={(e) => updateItem(index, "salePrice", e.target.value)} placeholder="0" className="text-sm" />
+                      </div>
+                      <div className="col-span-1">
+                        <div className="text-sm font-semibold text-right">
+                          ₨{(((parseFloat(item.quantity) || 0) * (parseFloat(item.costPrice) || 0))).toLocaleString()}
                         </div>
                       </div>
-                      <div className="col-span-2 text-right">
-                        <Button
-                          onClick={() => removeItem(index)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
-                        >
+                      <div className="col-span-1 text-right">
+                        <Button onClick={() => removeItem(index)} variant="ghost" size="sm" className="text-red-600 hover:text-red-700 h-8 w-8 p-0">
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
@@ -364,13 +349,67 @@ export function StockIn() {
                   ))
                 )}
               </div>
-
-              {/* Footer with Add New Product Link */}
               <div className="bg-slate-50 border-t border-slate-200 px-4 py-3">
-                <button
-                  onClick={() => setShowAddProductModal(true)}
-                  className="text-sm text-theme hover:text-theme-dark flex items-center"
-                >
+                <button onClick={() => setShowAddProductModal(true)} className="text-sm text-theme hover:text-theme-dark flex items-center">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Don't see your product? Add New Product
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile stacked layout */}
+            <div className="md:hidden space-y-3">
+              {items.length === 0 ? (
+                <div className="px-4 py-6 text-center text-slate-500 text-sm border rounded-lg">
+                  No products added yet. Tap "Add Product" to begin.
+                </div>
+              ) : (
+                items.map((item, index) => (
+                  <div key={index} className="p-4 border rounded-lg space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium">Product</Label>
+                      <select
+                        value={item.productId}
+                        onChange={(e) => updateItem(index, "productId", e.target.value)}
+                        className="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                      >
+                        <option value="">Select Product</option>
+                        {products.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-sm font-medium">Quantity</Label>
+                        <Input type="number" value={item.quantity} onChange={(e) => updateItem(index, "quantity", e.target.value)} placeholder="0" className="mt-1 text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Cost Price (₨)</Label>
+                        <Input type="number" value={item.costPrice} onChange={(e) => updateItem(index, "costPrice", e.target.value)} placeholder="0" className="mt-1 text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Sale Price (₨)</Label>
+                        <Input type="number" value={item.salePrice} onChange={(e) => updateItem(index, "salePrice", e.target.value)} placeholder="0" className="mt-1 text-sm" />
+                      </div>
+                      <div className="flex items-end justify-end">
+                        <div className="text-sm font-semibold">
+                          ₨{(((parseFloat(item.quantity) || 0) * (parseFloat(item.costPrice) || 0))).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={() => removeItem(index)} variant="outline" size="sm" className="flex-1 text-red-600 border-red-200">
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div className="flex justify-start">
+                <button onClick={() => setShowAddProductModal(true)} className="text-sm text-theme hover:text-theme-dark flex items-center">
                   <Plus className="h-4 w-4 mr-1" />
                   Don't see your product? Add New Product
                 </button>
@@ -455,7 +494,7 @@ export function StockIn() {
               </Button>
               <Button
                 onClick={handleSave}
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-theme hover:bg-theme-dark text-white"
                 disabled={!selectedVendorId || items.length === 0}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -492,10 +531,19 @@ export function StockIn() {
               <Input
                 id="vendorPhone"
                 value={vendorForm.phone}
-                onChange={(e) =>
-                  setVendorForm({ ...vendorForm, phone: e.target.value })
-                }
-                placeholder="+92 300 1234567"
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const digits = raw.replace(/\D/g, "");
+                  let after = digits;
+                  if (after.startsWith("0092")) after = after.slice(4);
+                  else if (after.startsWith("92")) after = after.slice(2);
+                  else if (after.startsWith("0")) after = after.slice(1);
+                  after = after.slice(0, 10);
+                  const formatted = after ? `+92 ${after}` : "+92 ";
+                  setVendorForm({ ...vendorForm, phone: formatted });
+                }}
+                placeholder="+92 XXXXXXXXXX"
+                maxLength={14}
                 className="h-10 border-slate-300 focus:border-theme focus:ring-theme"
               />
             </div>
@@ -514,7 +562,7 @@ export function StockIn() {
               />
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-3">
             <Button
               variant="outline"
               onClick={() => setShowAddVendorModal(false)}

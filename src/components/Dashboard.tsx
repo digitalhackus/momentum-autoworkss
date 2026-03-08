@@ -1,46 +1,101 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "./ui/dialog";
 import { AddCustomer } from "./AddCustomer";
-import { 
-  DollarSign, 
-  Wrench, 
-  CheckCircle2, 
-  Users, 
+import {
+  DollarSign,
+  Wrench,
+  CheckCircle2,
+  Users,
   TrendingUp,
   ArrowUpRight,
   Clock,
-  Car
+  Car,
 } from "lucide-react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Badge } from "./ui/badge";
 import { motion } from "motion/react";
+import { api } from "../api/client";
+import { formatDisplayDate } from "../utils/dateFormat";
 
-const salesData = [
-  { day: "Mon", revenue: 4200, jobs: 12 },
-  { day: "Tue", revenue: 3800, jobs: 10 },
-  { day: "Wed", revenue: 5100, jobs: 15 },
-  { day: "Thu", revenue: 4600, jobs: 13 },
-  { day: "Fri", revenue: 6200, jobs: 18 },
-  { day: "Sat", revenue: 7800, jobs: 22 },
-  { day: "Sun", revenue: 5400, jobs: 16 },
-];
+interface DashboardStats {
+  totalRevenue: number;
+  revenueToday: number;
+  jobsToday: number;
+  completedToday: number;
+  jobsInProgress: number;
+  customerCount: number;
+  vehicleCount: number;
+  revenueChangePercent: number | null;
+  completedChangePercent: number | null;
+}
 
-const recentJobs = [
-  { id: 1, customer: "John Smith", make: "Toyota", modelYear: "Camry 2021", service: "Oil Change + Inspection", amount: 450, status: "Completed", time: "2h ago" },
-  { id: 2, customer: "Sarah Johnson", make: "Honda", modelYear: "Civic 2020", service: "Brake Pad Replacement", amount: 320, status: "In Progress", time: "4h ago" },
-  { id: 3, customer: "Mike Wilson", make: "Ford", modelYear: "F-150 2022", service: "Engine Diagnostics", amount: 890, status: "Completed", time: "5h ago" },
-  { id: 4, customer: "Emily Davis", make: "Tesla", modelYear: "Model 3 2023", service: "Tire Rotation", amount: 275, status: "Pending", time: "6h ago" },
-];
+interface InvoiceRow {
+  id: string;
+  invoiceNumber?: string;
+  customer?: string;
+  customerId?: string;
+  make?: string;
+  model?: string;
+  plate?: string;
+  carYear?: string;
+  date?: string;
+  amount?: number;
+  status?: string;
+  items?: { description?: string }[];
+}
+
+function formatRs(n: number) {
+  return "Rs " + (n ?? 0).toLocaleString();
+}
+
+function formatTimeAgo(dateStr: string) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffHours < 1) return "Just now";
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return formatDisplayDate(dateStr);
+}
 
 interface DashboardProps {
   onNavigate?: (page: string) => void;
+  setShowCreateInvoice?: (show: boolean) => void;
 }
 
-export function Dashboard({ onNavigate }: DashboardProps = {}) {
+export function Dashboard({ onNavigate, setShowCreateInvoice }: DashboardProps = {}) {
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentInvoices, setRecentInvoices] = useState<InvoiceRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [statsRes, invoicesRes] = await Promise.all([
+          api.getDashboardStats(),
+          api.getRecentInvoices(),
+        ]);
+        if (!cancelled) {
+          setStats(statsRes);
+          setRecentInvoices((invoicesRes || []) as InvoiceRow[]);
+        }
+      } catch {
+        if (!cancelled) setStats(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -64,7 +119,11 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
             variant="outline" 
             className="flex-1 lg:flex-none" 
             size="sm"
-            onClick={() => onNavigate && onNavigate("invoices")}
+            type="button"
+            onClick={() => {
+              setShowCreateInvoice?.(true);
+              onNavigate?.("invoices");
+            }}
           >
             <DollarSign className="h-4 w-4 lg:mr-2" />
             <span className="hidden lg:inline">Create Invoice</span>
@@ -100,7 +159,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
       </div>
 
       {/* Today's Performance - Minimal Design */}
-      <motion.div 
+      <motion.div
         className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-800"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -111,19 +170,21 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
             <h2 className="text-xl lg:text-2xl text-white mb-1">Today's Performance</h2>
             <p className="text-sm text-slate-400">Track your daily revenue, jobs, and customer satisfaction</p>
           </div>
-          
+
           <div className="grid grid-cols-3 gap-3 lg:gap-6">
             <div className="space-y-1">
               <p className="text-xs text-slate-500">Total Revenue</p>
-              <p className="text-xl lg:text-3xl text-white">₨624,700</p>
+              <p className="text-xl lg:text-3xl text-white">
+                {loading ? "—" : formatRs(stats?.revenueToday ?? 0)}
+              </p>
             </div>
             <div className="space-y-1">
               <p className="text-xs text-slate-500">Jobs Today</p>
-              <p className="text-xl lg:text-3xl text-white">18</p>
+              <p className="text-xl lg:text-3xl text-white">{loading ? "—" : (stats?.jobsToday ?? 0)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs text-slate-500">Avg. Time</p>
-              <p className="text-xl lg:text-3xl text-white">2.5h</p>
+              <p className="text-xs text-slate-500">Completed Today</p>
+              <p className="text-xl lg:text-3xl text-white">{loading ? "—" : (stats?.completedToday ?? 0)}</p>
             </div>
           </div>
         </div>
@@ -144,10 +205,19 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl mb-1">Rs 3,750,000</div>
+              <div className="text-3xl mb-1">{loading ? "—" : formatRs(stats?.totalRevenue ?? 0)}</div>
               <div className="flex items-center text-sm text-green-600">
-                <ArrowUpRight className="h-4 w-4 mr-1" />
-                <span>+8.2% from last week</span>
+                {loading || stats?.revenueChangePercent == null ? (
+                  <span>Total revenue</span>
+                ) : (
+                  <>
+                    <ArrowUpRight className="h-4 w-4 mr-1" />
+                    <span>
+                      {stats.revenueChangePercent >= 0 ? "+" : ""}
+                      {stats.revenueChangePercent}% vs last week
+                    </span>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -166,10 +236,10 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl mb-1">23</div>
+              <div className="text-3xl mb-1">{loading ? "—" : (stats?.jobsInProgress ?? 0)}</div>
               <div className="flex items-center text-sm text-gray-600">
                 <Clock className="h-4 w-4 mr-1" />
-                <span>8 technicians active</span>
+                <span>Pending invoices</span>
               </div>
             </CardContent>
           </Card>
@@ -188,10 +258,19 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl mb-1">48</div>
+              <div className="text-3xl mb-1">{loading ? "—" : (stats?.completedToday ?? 0)}</div>
               <div className="flex items-center text-sm text-purple-600">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                <span>+12.5% vs yesterday</span>
+                {loading || stats?.completedChangePercent == null ? (
+                  <span>Paid today</span>
+                ) : (
+                  <>
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    <span>
+                      {stats.completedChangePercent >= 0 ? "+" : ""}
+                      {stats.completedChangePercent}% vs yesterday
+                    </span>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -210,10 +289,10 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl mb-1">342</div>
+              <div className="text-3xl mb-1">{loading ? "—" : (stats?.customerCount ?? 0)}</div>
               <div className="flex items-center text-sm text-gray-600">
                 <Car className="h-4 w-4 mr-1" />
-                <span>518 vehicles registered</span>
+                <span>{loading ? "—" : (stats?.vehicleCount ?? 0)} vehicles registered</span>
               </div>
             </CardContent>
           </Card>
@@ -222,7 +301,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
 
       
 
-      {/* Recent Jobs */}
+      {/* Recent Jobs (from recent invoices) */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -230,80 +309,110 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
               <CardTitle>Recent Jobs</CardTitle>
               <p className="text-xs lg:text-sm text-gray-600 mt-1">Latest service activities in your workshop</p>
             </div>
-            <Button variant="outline" size="sm">View All</Button>
+            <Button variant="outline" size="sm" onClick={() => onNavigate?.("invoices")}>
+              View All
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Mobile Card View */}
-          <div className="lg:hidden space-y-3">
-            {recentJobs.map((job) => (
-              <div key={job.id} className="p-4 border rounded-lg space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium">ID: {job.id}</p>
-                    <p className="text-sm text-gray-600">{job.customer}</p>
-                  </div>
-                  <Badge 
-                    className={
-                      job.status === "Completed" ? "bg-green-100 text-green-700 border-green-200" :
-                      job.status === "In Progress" ? "bg-theme-100 text-theme border-theme-200" :
-                      "bg-gray-100 text-gray-700 border-gray-200"
-                    }
-                  >
-                    {job.status}
-                  </Badge>
-                </div>
-                <p className="text-sm">{job.make} {job.modelYear}</p>
-                <p className="text-sm text-gray-600">{job.service}</p>
-                <div className="flex items-center justify-between text-sm pt-2 border-t">
-                  <span className="font-medium">₨{job.amount.toLocaleString()}</span>
-                  <span className="text-gray-500">{job.time}</span>
-                </div>
+          {loading ? (
+            <p className="text-sm text-gray-500">Loading…</p>
+          ) : recentInvoices.length === 0 ? (
+            <p className="text-sm text-gray-500">No recent invoices yet.</p>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className="lg:hidden space-y-3">
+                {recentInvoices.map((inv) => {
+                  const service = inv.items?.[0]?.description ?? "—";
+                  const status = inv.status ?? "Pending";
+                  return (
+                    <div key={inv.id} className="p-4 border rounded-lg space-y-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium">{inv.invoiceNumber ?? inv.id}</p>
+                          <p className="text-sm text-gray-600">{inv.customer}</p>
+                        </div>
+                        <Badge
+                          className={
+                            status === "Paid" ? "bg-green-100 text-green-700 border-green-200" :
+                            status === "In Progress" ? "bg-theme-100 text-theme border-theme-200" :
+                            "bg-gray-100 text-gray-700 border-gray-200"
+                          }
+                        >
+                          {status}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{[inv.make, inv.model].filter(Boolean).join(" ") || "—"}</span>
+                        {(inv.carYear || inv.plate) && (
+                          <span className="text-xs text-gray-500">{inv.carYear || inv.plate}</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600">{service}</p>
+                      <div className="flex items-center justify-between text-sm pt-2 border-t">
+                        <span className="font-medium">{formatRs(inv.amount ?? 0)}</span>
+                        <span className="text-gray-500">{formatTimeAgo(inv.date ?? "")}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
 
-          {/* Desktop Table View */}
-          <div className="hidden lg:block overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Make</TableHead>
-                  <TableHead>Model/Year</TableHead>
-                  <TableHead>Service</TableHead>
-                  <TableHead className="text-right">Amount (PKR)</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentJobs.map((job) => (
-                  <TableRow key={job.id}>
-                    <TableCell className="font-medium">{job.id}</TableCell>
-                    <TableCell>{job.customer}</TableCell>
-                    <TableCell>{job.make}</TableCell>
-                    <TableCell>{job.modelYear}</TableCell>
-                    <TableCell>{job.service}</TableCell>
-                    <TableCell className="text-right">₨{job.amount.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        className={
-                          job.status === "Completed" ? "bg-green-100 text-green-700 border-green-200" :
-                          job.status === "In Progress" ? "bg-theme-100 text-theme border-theme-200" :
-                          "bg-gray-100 text-gray-700 border-gray-200"
-                        }
-                      >
-                        {job.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-gray-500">{job.time}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">ID</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead className="text-right">Amount (PKR)</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentInvoices.map((inv) => {
+                      const service = inv.items?.[0]?.description ?? "—";
+                      const status = inv.status ?? "Pending";
+                      return (
+                        <TableRow key={inv.id}>
+                          <TableCell className="font-medium">{inv.invoiceNumber ?? inv.id}</TableCell>
+                          <TableCell>{inv.customer ?? "—"}</TableCell>
+                          <TableCell className="align-top">
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {[inv.make, inv.model].filter(Boolean).join(" ") || "—"}
+                              </span>
+                              {(inv.carYear || inv.plate) && (
+                                <span className="text-xs text-gray-500">{inv.carYear || inv.plate}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{service}</TableCell>
+                          <TableCell className="text-right">{formatRs(inv.amount ?? 0)}</TableCell>
+                          <TableCell>
+                            <Badge
+                              className={
+                                status === "Paid" ? "bg-green-100 text-green-700 border-green-200" :
+                                status === "In Progress" ? "bg-theme-100 text-theme border-theme-200" :
+                                "bg-gray-100 text-gray-700 border-gray-200"
+                              }
+                            >
+                              {status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-500">{formatTimeAgo(inv.date ?? "")}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

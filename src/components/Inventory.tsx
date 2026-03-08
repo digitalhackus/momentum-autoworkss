@@ -47,10 +47,10 @@ export function Inventory() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl mb-2">Inventory Management</h1>
-          <p className="text-gray-600">Manage your parts and products</p>
+          <h1 className="text-2xl md:text-3xl mb-1 md:mb-2">Inventory Management</h1>
+          <p className="text-sm md:text-base text-gray-600">Manage your parts and products</p>
         </div>
         <Button 
           className="bg-theme hover:bg-theme-dark"
@@ -63,7 +63,7 @@ export function Inventory() {
 
       <Card>
         <CardHeader>
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -74,7 +74,7 @@ export function Inventory() {
               />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full md:w-48">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter by category" />
               </SelectTrigger>
@@ -93,41 +93,77 @@ export function Inventory() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Unit Price</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>Rs {item.price.toLocaleString()}</TableCell>
-                  <TableCell>{item.supplier}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusColor(item.status)}>
-                      {item.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">Edit</Button>
-                      <Button size="sm" variant="ghost">Delete</Button>
-                    </div>
-                  </TableCell>
+          {/* Mobile/tablet card view */}
+          <div className="md:hidden space-y-3">
+            {filteredItems.map((item) => (
+              <div key={item.id} className="p-4 border rounded-lg">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="font-medium text-slate-900">{item.name}</p>
+                    <p className="text-sm text-slate-600">{item.category}</p>
+                  </div>
+                  <Badge variant={getStatusColor(item.status)}>{item.status}</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-slate-600">Quantity</span>
+                    <p className="font-semibold text-slate-900">{item.quantity}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">Unit Price</span>
+                    <p className="font-semibold text-slate-900">Rs {item.price.toLocaleString()}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-slate-600">Supplier</span>
+                    <p className="font-medium text-slate-900">{item.supplier}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" variant="outline" className="flex-1">Edit</Button>
+                  <Button size="sm" variant="ghost" className="flex-1">Delete</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table view */}
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Unit Price</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.category}</TableCell>
+                    <TableCell>{item.quantity}</TableCell>
+                    <TableCell>Rs {item.price.toLocaleString()}</TableCell>
+                    <TableCell>{item.supplier}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusColor(item.status)}>
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline">Edit</Button>
+                        <Button size="sm" variant="ghost">Delete</Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

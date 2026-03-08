@@ -21,6 +21,7 @@ export interface Invoice {
   make: string;
   model: string;
   plate: string;
+  carYear?: string;
   date: string;
   amount: number;
   status: 'Paid' | 'Pending' | 'Draft';
@@ -54,6 +55,7 @@ export interface Customer {
 export interface Product {
   id: string;
   name: string;
+  brand?: string;
   category: string;
   salePrice: number;
   lastCostPrice: number;
@@ -62,6 +64,7 @@ export interface Product {
   status: 'In Stock' | 'Low Stock' | 'Out of Stock';
   vendorId?: string;
   vendorName?: string;
+  lastStockInDate?: string;
 }
 
 export interface Vendor {
@@ -81,6 +84,7 @@ export interface StockInItem {
   productName: string;
   quantity: number;
   costPrice: number;
+  salePrice?: number;
   total: number;
 }
 
@@ -118,6 +122,122 @@ export interface CustomerVehicle {
   vehicleNumber: string;
 }
 
+// Finance: Expenses (independent of invoices/inventory)
+export interface Expense {
+  id: string;
+  category: string;
+  amount: number;
+  date: string;
+  payment_method: 'cash' | 'card' | 'bank' | 'online';
+  notes?: string | null;
+  recorded_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Finance: Utility types
+export interface UtilityType {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+// Finance: Utilities (independent of invoices/inventory)
+export interface Utility {
+  id: string;
+  utility_type_id: string;
+  billing_period_start: string;
+  billing_period_end: string;
+  amount: number;
+  due_date: string;
+  status: 'unpaid' | 'paid';
+  payment_method?: string | null;
+  paid_at?: string | null;
+  notes?: string | null;
+  recorded_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Finance: Salaries - Employees (independent of invoices)
+export interface Employee {
+  id: string;
+  name: string;
+  phone?: string | null;
+  role?: string | null;
+  monthly_salary: number;
+  joining_date?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Finance: Salaries - Salary records
+export interface SalaryRecord {
+  id: string;
+  employee_id: string;
+  month: number;
+  year: number;
+  salary_amount: number;
+  bonus: number;
+  deduction: number;
+  total_salary: number;
+  payment_status: 'unpaid' | 'paid';
+  payment_method?: string | null;
+  paid_at?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Daily Close types
+export interface DailyClosePaidInvoice {
+  invoiceId: string;
+  invoiceNumber: string;
+  customer: string;
+  amount: number;
+  paymentMethod: string;
+}
+
+export interface DailyClosePurchase {
+  stockInId: string;
+  vendorName: string;
+  totalAmount: number;
+}
+
+export interface DailyCloseVendorPayment {
+  paymentId: string;
+  vendorName: string;
+  amount: number;
+  method: string;
+}
+
+export interface DailyCloseLineItem {
+  description: string;
+  amount: number;
+}
+
+export interface DailyCloseRecord {
+  id?: string;
+  date: string;
+  paidInvoices: DailyClosePaidInvoice[];
+  totalRevenue: number;
+  inventoryPurchases: DailyClosePurchase[];
+  vendorPayments: DailyCloseVendorPayment[];
+  salaries: DailyCloseLineItem[];
+  utilities: DailyCloseLineItem[];
+  otherExpenses: DailyCloseLineItem[];
+  totalPurchases: number;
+  totalVendorPayments: number;
+  totalSalaries: number;
+  totalUtilities: number;
+  totalOtherExpenses: number;
+  totalExpenses: number;
+  netProfit: number;
+  closedAt?: string;
+  closedBy?: string;
+}
+
 interface DataContextType {
   invoices: Invoice[];
   customers: Customer[];
@@ -126,6 +246,12 @@ interface DataContextType {
   vendors: Vendor[];
   stockInRecords: StockInRecord[];
   vendorPayments: VendorPayment[];
+  expenses: Expense[];
+  utilityTypes: UtilityType[];
+  utilities: Utility[];
+  employees: Employee[];
+  salaryRecords: SalaryRecord[];
+  dailyCloses: DailyCloseRecord[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -144,6 +270,7 @@ interface DataContextType {
   getCustomerVehicles: (customerId: string) => Promise<CustomerVehicle[]>;
   addVehicle: (customerId: string, data: { carMake: string; carModel: string; carYear?: string; vehicleNumber: string }) => Promise<CustomerVehicle>;
   updateVehicle: (customerId: string, vehicleId: string, data: Partial<Pick<CustomerVehicle, 'carMake' | 'carModel' | 'carYear' | 'vehicleNumber'>>) => Promise<void>;
+  deleteVehicle: (customerId: string, vehicleId: string) => Promise<void>;
 
   // Product/Inventory Operations
   addProduct: (product: Omit<Product, 'id' | 'status'>) => Promise<Product>;
@@ -169,6 +296,36 @@ interface DataContextType {
   // Payment Operations
   addVendorPayment: (payment: Omit<VendorPayment, 'id' | 'date'>) => Promise<VendorPayment>;
   getVendorPayments: (vendorId: string) => VendorPayment[];
+
+  // Finance: Expenses
+  getExpenses: (filters?: { dateFrom?: string; dateTo?: string; category?: string }) => Promise<void>;
+  addExpense: (data: Omit<Expense, 'id' | 'created_at' | 'updated_at'>) => Promise<Expense>;
+  updateExpense: (id: string, updates: Partial<Omit<Expense, 'id'>>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
+  getExpenseSummaryDaily: (date: string) => Promise<{ date: string; total: number; count: number }>;
+  getExpenseSummaryMonthly: (year: number, month: number) => Promise<{ year: number; month: number; total: number; count: number }>;
+
+  // Finance: Utilities
+  addUtilityType: (name: string) => Promise<UtilityType>;
+  getUtilities: (filters?: { status?: string; dueDateFrom?: string; dueDateTo?: string }) => Promise<void>;
+  getOutstandingUtilities: () => Promise<Utility[]>;
+  addUtility: (data: Omit<Utility, 'id' | 'created_at' | 'updated_at'>) => Promise<Utility>;
+  updateUtility: (id: string, updates: Partial<Omit<Utility, 'id'>>) => Promise<void>;
+  markUtilityPaid: (id: string, paymentMethod?: string) => Promise<void>;
+  getUtilitySummaryMonthly: (year: number, month: number) => Promise<{ year: number; month: number; total: number; paid: number; unpaid: number; count: number }>;
+
+  // Finance: Salaries
+  getSalaryRecords: (filters?: { month?: number; year?: number; status?: string; employee_id?: string }) => Promise<void>;
+  getSalariesDashboard: () => Promise<{ totalEmployees: number; totalPayrollThisMonth: number; unpaidCount: number; paidThisMonthTotal: number }>;
+  addEmployee: (data: Omit<Employee, 'id' | 'created_at' | 'updated_at'>) => Promise<Employee>;
+  updateEmployee: (id: string, updates: Partial<Omit<Employee, 'id'>>) => Promise<void>;
+  createSalaryRecord: (data: { employee_id: string; month: number; year: number; bonus?: number; deduction?: number; notes?: string }) => Promise<SalaryRecord>;
+  markSalaryPaid: (id: string, paymentMethod: string) => Promise<void>;
+
+  // Finance: Daily Close
+  fetchDailyClosePreview: (date: string) => Promise<DailyCloseRecord>;
+  closeDay: (date: string) => Promise<void>;
+  reopenDay: (date: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -181,13 +338,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [stockInRecords, setStockInRecords] = useState<StockInRecord[]>([]);
   const [vendorPayments, setVendorPayments] = useState<VendorPayment[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [utilityTypes, setUtilityTypes] = useState<UtilityType[]>([]);
+  const [utilities, setUtilities] = useState<Utility[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
+  const [dailyCloses, setDailyCloses] = useState<DailyCloseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
     setError(null);
     try {
-      const [inv, cust, prod, srv, vend, stock, pay] = await Promise.all([
+      const [inv, cust, prod, srv, vend, stock, pay, exp, uTypes, utils, emps, dcList] = await Promise.all([
         api.getInvoices(),
         api.getCustomers(),
         api.getProducts(),
@@ -195,6 +358,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         api.getVendors(),
         api.getStockInRecords(),
         api.getVendorPaymentsList(),
+        api.getExpenses(),
+        api.getUtilityTypes(),
+        api.getUtilities(),
+        api.getEmployees(),
+        api.getDailyCloses(),
       ]);
       setInvoices((inv as Invoice[]) || []);
       setCustomers((cust as Customer[]) || []);
@@ -203,6 +371,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setVendors((vend as Vendor[]) || []);
       setStockInRecords((stock as StockInRecord[]) || []);
       setVendorPayments((pay as VendorPayment[]) || []);
+      setExpenses((exp as Expense[]) || []);
+      setUtilityTypes((uTypes as UtilityType[]) || []);
+      setUtilities((utils as Utility[]) || []);
+      setEmployees((emps as Employee[]) || []);
+      setDailyCloses((dcList as DailyCloseRecord[]) || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -216,7 +389,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addInvoice = async (invoiceData: Omit<Invoice, 'id' | 'invoiceNumber' | 'date' | 'servicesCount'>) => {
     const created = (await api.createInvoice(invoiceData)) as Invoice;
-    await refetch();
+    setInvoices((prev) => {
+      const next = [created, ...prev];
+      next.sort((a, b) => (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0));
+      return next;
+    });
+    try {
+      await refetch();
+    } catch {
+      // Keep optimistic list if refetch fails
+    }
     return created;
   };
 
@@ -270,6 +452,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     data: Partial<Pick<CustomerVehicle, 'carMake' | 'carModel' | 'carYear' | 'vehicleNumber'>>
   ) => {
     await api.updateCustomerVehicle(customerId, vehicleId, data);
+    await refetch();
+  };
+  
+  const deleteVehicle = async (customerId: string, vehicleId: string) => {
+    await api.deleteCustomerVehicle(customerId, vehicleId);
     await refetch();
   };
 
@@ -344,6 +531,133 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const getVendorPayments = (vendorId: string) => vendorPayments.filter((pay) => pay.vendorId === vendorId);
 
+  const getExpenses = useCallback(async (filters?: { dateFrom?: string; dateTo?: string; category?: string }) => {
+    const list = (await api.getExpenses(filters)) as Expense[];
+    setExpenses(list || []);
+  }, []);
+
+  const addExpense = async (data: Omit<Expense, 'id' | 'created_at' | 'updated_at'>) => {
+    const created = (await api.createExpense(data)) as Expense;
+    setExpenses((prev) => [created, ...prev]);
+    return created;
+  };
+
+  const updateExpenseById = async (id: string, updates: Partial<Omit<Expense, 'id'>>) => {
+    await api.updateExpense(id, updates);
+    setExpenses((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, ...updates, updated_at: new Date().toISOString() } : e))
+    );
+  };
+
+  const deleteExpenseById = async (id: string) => {
+    await api.deleteExpense(id);
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const getExpenseSummaryDaily = (date: string) => api.getExpenseSummaryDaily(date);
+  const getExpenseSummaryMonthly = (year: number, month: number) => api.getExpenseSummaryMonthly(year, month);
+
+  const addUtilityTypeByName = async (name: string) => {
+    const created = (await api.addUtilityType(name)) as UtilityType;
+    setUtilityTypes((prev) => [...prev, created].sort((a, b) => a.id.localeCompare(b.id)));
+    return created;
+  };
+
+  const getUtilitiesWithFilters = useCallback(
+    async (filters?: { status?: string; dueDateFrom?: string; dueDateTo?: string }) => {
+      const list = (await api.getUtilities(filters)) as Utility[];
+      setUtilities(list || []);
+    },
+    []
+  );
+
+  const getOutstandingUtilities = async () => {
+    const list = (await api.getOutstandingUtilities()) as Utility[];
+    return list;
+  };
+
+  const addUtility = async (data: Omit<Utility, 'id' | 'created_at' | 'updated_at'>) => {
+    const created = (await api.createUtility(data)) as Utility;
+    setUtilities((prev) => [created, ...prev]);
+    return created;
+  };
+
+  const updateUtilityById = async (id: string, updates: Partial<Omit<Utility, 'id'>>) => {
+    await api.updateUtility(id, updates);
+    setUtilities((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, ...updates, updated_at: new Date().toISOString() } : u))
+    );
+  };
+
+  const markUtilityPaidById = async (id: string, paymentMethod?: string) => {
+    const updated = (await api.markUtilityPaid(id, paymentMethod)) as Utility;
+    setUtilities((prev) => prev.map((u) => (u.id === id ? { ...u, ...updated } : u)));
+  };
+
+  const getUtilitySummaryMonthly = (year: number, month: number) => api.getUtilitySummaryMonthly(year, month);
+
+  const getSalaryRecordsWithFilters = useCallback(
+    async (filters?: { month?: number; year?: number; status?: string; employee_id?: string }) => {
+      const list = (await api.getSalaryRecords(filters)) as SalaryRecord[];
+      setSalaryRecords(list || []);
+    },
+    []
+  );
+
+  const getSalariesDashboardStats = useCallback(() => api.getSalariesDashboard(), []);
+
+  const addEmployeeAsync = async (data: Omit<Employee, 'id' | 'created_at' | 'updated_at'>) => {
+    const created = (await api.createEmployee(data)) as Employee;
+    await refetch();
+    return created;
+  };
+
+  const updateEmployeeById = async (id: string, updates: Partial<Omit<Employee, 'id'>>) => {
+    setEmployees((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, ...updates, updated_at: new Date().toISOString() } : e))
+    );
+    try {
+      await api.updateEmployee(id, updates);
+      await refetch();
+    } catch {
+      await refetch();
+    }
+  };
+
+  const createSalaryRecordAsync = async (data: {
+    employee_id: string;
+    month: number;
+    year: number;
+    bonus?: number;
+    deduction?: number;
+    notes?: string;
+  }) => {
+    const created = (await api.createSalaryRecord(data)) as SalaryRecord;
+    setSalaryRecords((prev) => [created, ...prev]);
+    return created;
+  };
+
+  const markSalaryPaidById = async (id: string, paymentMethod: string) => {
+    const updated = (await api.markSalaryPaid(id, paymentMethod)) as SalaryRecord;
+    setSalaryRecords((prev) => prev.map((r) => (r.id === id ? { ...r, ...updated } : r)));
+  };
+
+  // --- Daily Close ---
+  const fetchDailyClosePreview = async (date: string): Promise<DailyCloseRecord> => {
+    const result = (await api.getDailyClosePreview(date)) as DailyCloseRecord;
+    return result;
+  };
+
+  const closeDay = async (date: string) => {
+    await api.closeDailyClose(date);
+    await refetch();
+  };
+
+  const reopenDay = async (date: string) => {
+    await api.reopenDailyClose(date);
+    await refetch();
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -354,6 +668,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         vendors,
         stockInRecords,
         vendorPayments,
+        expenses,
+        utilityTypes,
+        utilities,
+        employees,
+        salaryRecords,
+        dailyCloses,
         loading,
         error,
         refetch,
@@ -368,6 +688,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         getCustomerVehicles,
         addVehicle,
         updateVehicle,
+  deleteVehicle,
         addProduct,
         updateProduct,
         deleteProduct,
@@ -383,6 +704,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
         getVendorStockIns,
         addVendorPayment,
         getVendorPayments,
+        getExpenses,
+        addExpense,
+        updateExpense: updateExpenseById,
+        deleteExpense: deleteExpenseById,
+        getExpenseSummaryDaily,
+        getExpenseSummaryMonthly,
+        addUtilityType: addUtilityTypeByName,
+        getUtilities: getUtilitiesWithFilters,
+        getOutstandingUtilities,
+        addUtility,
+        updateUtility: updateUtilityById,
+        markUtilityPaid: markUtilityPaidById,
+        getUtilitySummaryMonthly,
+        getSalaryRecords: getSalaryRecordsWithFilters,
+        getSalariesDashboard: getSalariesDashboardStats,
+        addEmployee: addEmployeeAsync,
+        updateEmployee: updateEmployeeById,
+        createSalaryRecord: createSalaryRecordAsync,
+        markSalaryPaid: markSalaryPaidById,
+        fetchDailyClosePreview,
+        closeDay,
+        reopenDay,
       }}
     >
       {children}

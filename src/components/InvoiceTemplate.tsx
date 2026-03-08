@@ -75,14 +75,14 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
         </div>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-slate-900 mb-3">MOMENTUM AUTOWORKS</h1>
-          <div className="grid grid-cols-3 gap-8 text-sm">
+          <div className="grid grid-cols-3 gap-x-8 text-sm">
             <div>
               <p className="text-slate-500 font-medium mb-1">Email</p>
               <p className="text-slate-700">info@momentumauto.pk</p>
             </div>
             <div>
               <p className="text-slate-500 font-medium mb-1">Address</p>
-              <p className="text-slate-700">Soan Gardens, Islamabad, Pakistan</p>
+              <p className="text-slate-700 whitespace-nowrap">Soan Gardens, Islamabad</p>
             </div>
             <div>
               <p className="text-slate-500 font-medium mb-1">Phone</p>
@@ -119,7 +119,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           </div>
           <div className="grid grid-cols-[140px_1fr] gap-2">
             <span className="text-sm font-semibold text-slate-700">Payment Method:</span>
-            <span className="text-sm text-slate-900">{paymentMethod?.toUpperCase() || 'CARD/POS'}</span>
+            <span className="text-sm text-slate-900">{paymentMethod?.trim().toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) || 'Card'}</span>
           </div>
         </div>
 
@@ -150,7 +150,6 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
             <thead>
               <tr className="border-b border-slate-200">
                 <th className="text-left text-sm font-semibold text-slate-600 pb-3 px-4">Description</th>
-                <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-24">Quantity</th>
                 <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Price</th>
                 <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Amount</th>
               </tr>
@@ -159,7 +158,6 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
               {services.map((item, index) => (
                 <tr key={item.id} className={index !== services.length - 1 ? "border-b border-slate-100" : ""}>
                   <td className="text-sm text-slate-700 py-3 px-4">{item.name}</td>
-                  <td className="text-sm text-slate-700 py-3 px-4 text-right">{item.quantity}</td>
                   <td className="text-sm text-slate-700 py-3 px-4 text-right">₨{item.unitPrice.toLocaleString()}</td>
                   <td className="text-sm font-medium text-slate-900 py-3 px-4 text-right">
                     ₨{(item.unitPrice * item.quantity).toLocaleString()}

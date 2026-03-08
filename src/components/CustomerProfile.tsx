@@ -58,6 +58,7 @@ import {
   Package,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDisplayDate } from "../utils/dateFormat";
 
 interface CustomerProfileProps {
   customer: {
@@ -679,7 +680,7 @@ export function CustomerProfile({
                               <div className="min-w-0">
                                 <h4 className="font-bold text-sm text-slate-900 truncate">{service.service}</h4>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-xs text-slate-500 font-medium">{service.date}</span>
+                                  <span className="text-xs text-slate-500 font-medium">{formatDisplayDate(service.date)}</span>
                                   <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                                   <span className="text-xs text-theme font-semibold">{service.vehicle}</span>
                                 </div>
@@ -864,7 +865,7 @@ export function CustomerProfile({
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex flex-col">
-                                    <span className="text-sm font-medium text-slate-900">{service.date}</span>
+                                    <span className="text-sm font-medium text-slate-900">{formatDisplayDate(service.date)}</span>
                                     <span className="text-[10px] text-slate-500 uppercase font-semibold">10:30 AM</span>
                                   </div>
                                 </TableCell>
@@ -1041,7 +1042,7 @@ export function CustomerProfile({
                               </span>
                             </div>
                             <span className="text-xs text-slate-500">
-                              {interaction.date}
+                              {formatDisplayDate(interaction.date)}
                             </span>
                           </div>
                           <p className="text-sm text-slate-700">

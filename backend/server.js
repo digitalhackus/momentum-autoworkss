@@ -11,13 +11,38 @@ const vendorsRouter = require("./routes/vendors");
 const stockInRouter = require("./routes/stockIn");
 const vendorPaymentsRouter = require("./routes/vendorPayments");
 const authRouter = require("./routes/auth");
-
+const dashboardRouter = require("./routes/dashboard");
+const expensesRouter = require("./routes/expenses");
+const utilitiesRouter = require("./routes/utilities");
+const employeesRouter = require("./routes/employees");
+const salariesRouter = require("./routes/salaries");
+const dailyCloseRouter = require("./routes/dailyClose");
 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({ origin: ["http://localhost:3000", "http://127.0.0.1:3000"] }));
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://motorworks.pk",
+  "https://www.motorworks.pk"
+];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl) or allowed list
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.use("/api/invoices", invoicesRouter);
@@ -28,7 +53,12 @@ app.use("/api/vendors", vendorsRouter);
 app.use("/api/stock-in", stockInRouter);
 app.use("/api/vendor-payments", vendorPaymentsRouter);
 app.use("/api/auth", authRouter);
-
+app.use("/api/dashboard", dashboardRouter);
+app.use("/api/expenses", expensesRouter);
+app.use("/api/utilities", utilitiesRouter);
+app.use("/api/employees", employeesRouter);
+app.use("/api/salaries", salariesRouter);
+app.use("/api/daily-close", dailyCloseRouter);
 
 // MongoDB Connection and persistence — server starts only after DB is ready
 const db = require("./data/db");

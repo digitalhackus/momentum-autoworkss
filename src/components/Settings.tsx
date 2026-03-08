@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useTheme } from "../contexts/ThemeContext";
+import { api } from "../api/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -45,6 +47,15 @@ export function Settings() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [taxSaveSuccess, setTaxSaveSuccess] = useState(false);
+  const formatPkPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    let after = digits;
+    if (after.startsWith("0092")) after = after.slice(4);
+    else if (after.startsWith("92")) after = after.slice(2);
+    else if (after.startsWith("0")) after = after.slice(1);
+    after = after.slice(0, 10);
+    return after ? `+92 ${after}` : "+92 ";
+  };
 
   // Notification settings state
   const [serviceDueReminders, setServiceDueReminders] = useState(true);
@@ -52,13 +63,25 @@ export function Settings() {
   const [overdueAlerts, setOverdueAlerts] = useState(true);
   const [overdueDays, setOverdueDays] = useState(7);
   const [jobCompletionNotif, setJobCompletionNotif] = useState(true);
-  const [whatsappNotif, setwhatsappNotif] = useState(false);
+  const [whatsappNotif, setwhatsappNotif] = useState(true);
 
   // Security settings state
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const validateNewPassword = (p: string) => {
+    if (!p) return "New password is required.";
+    if (p.length < 8) return "Password must be at least 8 characters.";
+    if (!/[a-z]/.test(p)) return "Password must contain at least one lowercase letter.";
+    if (!/[A-Z]/.test(p)) return "Password must contain at least one uppercase letter.";
+    if (!/\d/.test(p)) return "Password must contain at least one number.";
+    if (!/[@$!%*?&]/.test(p)) return "Password must contain at least one special character (@$!%*?&).";
+    return null;
+  };
 
   const themeColors = [
     { name: "Momentum Red", value: "#c2272d" },
@@ -110,6 +133,37 @@ export function Settings() {
     setTimeout(() => setTaxSaveSuccess(false), 3000);
   };
 
+  const handleUpdatePassword = async () => {
+    setPasswordError(null);
+    if (!currentPassword.trim()) {
+      setPasswordError("Current password is required.");
+      return;
+    }
+    const newErr = validateNewPassword(newPassword);
+    if (newErr) {
+      setPasswordError(newErr);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirm password do not match.");
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      await api.changePassword({ currentPassword: currentPassword.trim(), newPassword });
+      toast.success("Password updated successfully.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update password. Please try again.";
+      setPasswordError(message);
+      toast.error(message);
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <div className="flex-1 space-y-4 lg:space-y-6">
@@ -121,34 +175,34 @@ export function Settings() {
 
         {/* Settings Tabs */}
         <Tabs value={settingsTab} onValueChange={(v) => setSettingsTab(v as typeof settingsTab)} className="space-y-8">
-          <TabsList className="flex w-full bg-[#eff2f5] p-1.5 rounded-xl border-none h-auto">
+          <TabsList className="flex w-full bg-white p-2 border border-slate-200 rounded-2xl h-auto overflow-x-auto scrollbar-hidden gap-0 justify-between">
             <TabsTrigger 
               value="workshop" 
-              className="flex-1 py-3 rounded-lg transition-all data-[state=active]:bg-theme data-[state=active]:text-white font-bold text-[#1a1a1a] cursor-pointer"
+              className="sm:flex-1 flex-none py-2 px-4 rounded-md transition-colors font-medium cursor-pointer whitespace-nowrap text-slate-700 hover:text-slate-900 data-[state=active]:font-semibold data-[state=active]:text-slate-700"
             >
               Workshop
             </TabsTrigger>
             <TabsTrigger 
               value="catalogue" 
-              className="flex-1 py-3 rounded-lg transition-all data-[state=active]:bg-theme data-[state=active]:text-white font-bold text-[#1a1a1a] cursor-pointer"
+              className="sm:flex-1 flex-none py-2 px-4 rounded-md transition-colors font-medium cursor-pointer whitespace-nowrap text-slate-700 hover:text-slate-900 data-[state=active]:font-semibold data-[state=active]:text-slate-700"
             >
               Catalogue
             </TabsTrigger>
             <TabsTrigger 
               value="users" 
-              className="flex-1 py-3 rounded-lg transition-all data-[state=active]:bg-theme data-[state=active]:text-white font-bold text-[#1a1a1a] cursor-pointer"
+              className="sm:flex-1 flex-none py-2 px-4 rounded-md transition-colors font-medium cursor-pointer whitespace-nowrap text-slate-700 hover:text-slate-900 data-[state=active]:font-semibold data-[state=active]:text-slate-700"
             >
               Users
             </TabsTrigger>
             <TabsTrigger 
               value="notifications" 
-              className="flex-1 py-3 rounded-lg transition-all data-[state=active]:bg-theme data-[state=active]:text-white font-bold text-[#1a1a1a] cursor-pointer"
+              className="sm:flex-1 flex-none py-2 px-4 rounded-md transition-colors font-medium cursor-pointer whitespace-nowrap text-slate-700 hover:text-slate-900 data-[state=active]:font-semibold data-[state=active]:text-slate-700"
             >
               Notifications
             </TabsTrigger>
             <TabsTrigger 
               value="security" 
-              className="flex-1 py-3 rounded-lg transition-all data-[state=active]:bg-theme data-[state=active]:text-white font-bold text-[#1a1a1a] cursor-pointer"
+              className="sm:flex-1 flex-none py-2 px-4 rounded-md transition-colors font-medium cursor-pointer whitespace-nowrap text-slate-700 hover:text-slate-900 data-[state=active]:font-semibold data-[state=active]:text-slate-700"
             >
               Security
             </TabsTrigger>
@@ -188,9 +242,10 @@ export function Settings() {
                     </Label>
                     <Input
                       id="workshop-phone"
-                      placeholder="+92 XXX XXXXXXX"
+                      placeholder="+92 XXXXXXXXXX"
                       value={workshopPhone}
-                      onChange={(e) => setWorkshopPhone(e.target.value)}
+                      onChange={(e) => setWorkshopPhone(formatPkPhone(e.target.value))}
+                      maxLength={14}
                       className="bg-[#f3f4f6] border border-slate-200 h-11 rounded-lg text-base px-4"
                     />
                   </div>
@@ -218,13 +273,6 @@ export function Settings() {
                       className="min-h-[100px] bg-[#f3f4f6] border border-slate-200 rounded-lg text-base p-4"
                     />
                   </div>
-                  <Button
-                    onClick={handleSave}
-                    className="bg-theme hover:bg-theme/90 text-white font-bold py-2.5 px-6 rounded-lg gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    Save Changes
-                  </Button>
                 </CardContent>
               </Card>
 
@@ -521,6 +569,7 @@ export function Settings() {
                       <Switch 
                         checked={serviceDueReminders}
                         onCheckedChange={setServiceDueReminders}
+                        disabled
                       />
                     </div>
                     <div className="flex items-center gap-4 pt-2 border-t border-slate-200/50">
@@ -532,6 +581,7 @@ export function Settings() {
                         className="w-24 bg-white border-slate-200 h-10 font-bold"
                         min="1"
                         onChange={(e) => setServiceDueDays(Number(e.target.value))}
+                        disabled
                       />
                     </div>
                   </div>
@@ -545,6 +595,7 @@ export function Settings() {
                       <Switch 
                         checked={overdueAlerts}
                         onCheckedChange={setOverdueAlerts}
+                        disabled
                       />
                     </div>
                     <div className="flex items-center gap-4 pt-2 border-t border-slate-200/50">
@@ -556,6 +607,7 @@ export function Settings() {
                         className="w-24 bg-white border-slate-200 h-10 font-bold"
                         min="1"
                         onChange={(e) => setOverdueDays(Number(e.target.value))}
+                        disabled
                       />
                     </div>
                   </div>
@@ -566,9 +618,10 @@ export function Settings() {
                     <p className="font-bold text-[#1a1a1a]">Job Completion Notifications</p>
                     <p className="text-sm text-slate-500 mt-1">Notify customers when their vehicle is ready</p>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={jobCompletionNotif}
                     onCheckedChange={setJobCompletionNotif}
+                    disabled
                   />
                 </div>
 
@@ -577,9 +630,10 @@ export function Settings() {
                     <p className="font-bold text-[#1a1a1a]">WhatsApp Notifications</p>
                     <p className="text-sm text-slate-500 mt-1">Send notifications via WhatsApp Business API</p>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={whatsappNotif}
                     onCheckedChange={setwhatsappNotif}
+                    disabled
                   />
                 </div>
               </CardContent>
@@ -604,25 +658,28 @@ export function Settings() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between p-6 border border-slate-100 rounded-2xl bg-[#f9fafb]">
                     <div>
-                      <p className="font-bold text-[#1a1a1a]">Two-Factor Authentication</p>
+                      <p className="font-bold text-[#1a1a1a]">
+                        Two-Factor Authentication
+                        <span className="ml-2 text-xs font-medium text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">Coming in a future release</span>
+                      </p>
                       <p className="text-sm text-slate-500 mt-1">Add an extra layer of security to your account</p>
                     </div>
-                    <Switch 
-                      checked={twoFactorAuth}
-                      onCheckedChange={setTwoFactorAuth}
-                    />
                   </div>
 
                   <div className="p-8 border border-slate-100 rounded-2xl bg-white space-y-6">
                     <h3 className="font-bold text-lg text-[#1a1a1a]">Change Password</h3>
                     <div className="space-y-4">
+                      {passwordError && (
+                        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{passwordError}</p>
+                      )}
                       <div className="space-y-2">
                         <Label className="text-sm font-bold text-[#1a1a1a]">Current Password</Label>
                         <Input 
                           type="password" 
                           className="bg-[#f3f4f6] border-none h-14 rounded-xl px-5"
+                          placeholder="Enter your current password"
                           value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(null); }}
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -631,8 +688,9 @@ export function Settings() {
                           <Input 
                             type="password" 
                             className="bg-[#f3f4f6] border-none h-14 rounded-xl px-5"
+                            placeholder="Min 8 chars, uppercase, lowercase, number, special (@$!%*?&)"
                             value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
+                            onChange={(e) => { setNewPassword(e.target.value); setPasswordError(null); }}
                           />
                         </div>
                         <div className="space-y-2">
@@ -640,11 +698,20 @@ export function Settings() {
                           <Input 
                             type="password" 
                             className="bg-[#f3f4f6] border-none h-14 rounded-xl px-5"
+                            placeholder="Re-enter new password"
                             value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(null); }}
                           />
                         </div>
                       </div>
+                      <Button
+                        type="button"
+                        onClick={handleUpdatePassword}
+                        disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                        className="bg-theme hover:bg-theme-dark text-white font-bold py-2.5 px-6 rounded-lg gap-2"
+                      >
+                        {isChangingPassword ? "Updating…" : "Update Password"}
+                      </Button>
                     </div>
                   </div>
                 </div>

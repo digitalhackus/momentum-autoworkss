@@ -1,13 +1,22 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "./ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { Badge } from "./ui/badge";
-import { CustomerProfile } from "./CustomerProfile";
 import { AddCustomer } from "./AddCustomer";
 import { useData } from "../contexts/DataContext";
+import type { CustomerVehicle } from "../contexts/DataContext";
 import { toast } from "sonner";
 import { 
   Search, 
@@ -26,22 +35,74 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { motion } from "motion/react";
+import { formatDisplayDate } from "../utils/dateFormat";
 
 interface CustomersProps {
-  onNavigate?: (page: string) => void;
+  onNavigate?: (page: string, options?: { customerId?: string }) => void;
   setShowCreateInvoice?: (show: boolean) => void;
 }
 
 export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps = {}) {
-  const { customers, addCustomer, updateCustomer, deleteCustomer, loading } = useData();
+  const { customers, invoices, addCustomer, updateCustomer, deleteCustomer, loading, getCustomerVehicles } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<(typeof customers)[0] | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [sortBy, setSortBy] = useState("recent");
   const [isSaving, setIsSaving] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<(typeof customers)[0] | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [statusChangeTarget, setStatusChangeTarget] = useState<{ customer: (typeof customers)[0]; newStatus: "Active" | "Inactive" } | null>(null);
+  const [vehiclesModal, setVehiclesModal] = useState<{ customer: (typeof customers)[0]; vehicles: CustomerVehicle[] } | null>(null);
+  const [vehiclesModalLoading, setVehiclesModalLoading] = useState(false);
+
+  const handleShowVehicles = async (e: React.MouseEvent, customer: (typeof customers)[0]) => {
+    e.stopPropagation();
+    if (customer.vehicles === 0) return;
+    setVehiclesModal({ customer, vehicles: [] });
+    setVehiclesModalLoading(true);
+    try {
+      const list = await getCustomerVehicles(customer.id);
+      setVehiclesModal({ customer, vehicles: list || [] });
+    } catch {
+      setVehiclesModal({ customer, vehicles: [] });
+    } finally {
+      setVehiclesModalLoading(false);
+    }
+  };
+
+  const getStatusPillClass = () =>
+    "bg-theme-100 text-theme border-theme-200";
+
+  const lastVisitByCustomerId = useMemo(() => {
+    const map: Record<string, string> = {};
+    const list = invoices ?? [];
+    const sorted = [...list].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    for (const inv of sorted) {
+      if (inv.customerId && map[inv.customerId] === undefined && inv.date)
+        map[inv.customerId] = inv.date;
+    }
+    return map;
+  }, [invoices]);
+
+  const getLastVisit = (customerId: string) => lastVisitByCustomerId[customerId] ?? "N/A";
+
+  const handleStatusChangeConfirm = async () => {
+    if (!statusChangeTarget) return;
+    try {
+      await updateCustomer(statusChangeTarget.customer.id, { status: statusChangeTarget.newStatus });
+      toast.success(`Customer marked as ${statusChangeTarget.newStatus}.`);
+      setStatusChangeTarget(null);
+    } catch (err) {
+      console.error("Error updating customer status:", err);
+      toast.error("Failed to update status. Please try again.");
+    }
+  };
+
+  const lastVisitTime = (customerId: string) => {
+    const d = getLastVisit(customerId);
+    return d === "N/A" ? 0 : new Date(d).getTime();
+  };
 
   const filteredCustomers = customers
     .filter(customer =>
@@ -52,9 +113,9 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
     .sort((a, b) => {
       switch (sortBy) {
         case "recent":
-          return new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime();
+          return lastVisitTime(b.id) - lastVisitTime(a.id);
         case "oldest":
-          return new Date(a.lastVisit).getTime() - new Date(b.lastVisit).getTime();
+          return lastVisitTime(a.id) - lastVisitTime(b.id);
         case "name-asc":
           return a.name.localeCompare(b.name);
         case "name-desc":
@@ -72,9 +133,8 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
       }
     });
 
-  const handleViewProfile = (customer: (typeof customers)[0]) => {
-    setSelectedCustomer(customer);
-    setIsProfileOpen(true);
+  const handleCustomerClick = (customer: (typeof customers)[0]) => {
+    onNavigate?.("invoices", { customerId: customer.id });
   };
 
   return (
@@ -140,16 +200,14 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
                   toast.success("Customer added successfully!");
                   setIsDialogOpen(false);
                   
-                  // Navigate to invoices page with customer pre-selected
+                  // Persist new customer ID for Vehicles page preselection
+                  try {
+                    localStorage.setItem("newCustomerId", newCustomer.id);
+                  } catch {}
+                  
+                  // Navigate to Vehicles page to add vehicle for the new customer
                   if (onNavigate) {
-                    onNavigate("invoices");
-                    // Set the customer ID in localStorage or pass it somehow so AddInvoice can use it
-                    // For now, we'll navigate and the user can search for the customer
-                    setTimeout(() => {
-                      if (setShowCreateInvoice) {
-                        setShowCreateInvoice(true);
-                      }
-                    }, 100);
+                    onNavigate("vehicles");
                   }
                 } catch (error) {
                   toast.error("Failed to add customer. Please try again.");
@@ -199,9 +257,10 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
                     {loading
                       ? "..."
                       : customers.filter((c) => {
-                          const d = new Date(c.lastVisit);
+                          const lastVisit = getLastVisit(c.id);
+                          const d = lastVisit === "N/A" ? null : new Date(lastVisit);
                           const now = new Date();
-                          return !isNaN(d.getTime()) && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                          return d && !isNaN(d.getTime()) && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
                         }).length}
                   </p>
                 </div>
@@ -352,7 +411,7 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => handleViewProfile(customer)}
+                onClick={() => handleCustomerClick(customer)}
                 className="p-4 border rounded-lg space-y-3 cursor-pointer hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-start justify-between">
@@ -366,14 +425,17 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
                       <p className="font-medium">{customer.name}</p>
                     </div>
                   </div>
-                  <Badge
-                    className={
-                      customer.status === "VIP" ? "bg-purple-100 text-purple-700 border-purple-200" :
-                      "bg-green-100 text-green-700 border-green-200"
-                    }
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newStatus = customer.status === "Inactive" ? "Active" : "Inactive";
+                      setStatusChangeTarget({ customer, newStatus });
+                    }}
+                    className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors hover:opacity-90 ${getStatusPillClass()}`}
                   >
                     {customer.status}
-                  </Badge>
+                  </button>
                 </div>
 
                 <div className="space-y-1 text-sm">
@@ -395,8 +457,13 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
 
                 <div className="flex items-center justify-between pt-2 border-t text-sm">
                   <div className="flex gap-4">
-                    <span className="text-gray-600">{customer.vehicles} vehicle(s)</span>
-                    <span className="text-gray-600">{customer.serviceHistory} services</span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleShowVehicles(e, customer)}
+                      className="text-theme font-medium hover:underline"
+                    >
+                      {customer.vehicles} vehicle{customer.vehicles !== 1 ? "s" : ""}
+                    </button>
                   </div>
                   <span className="font-medium">₨{customer.totalSpent.toLocaleString()}</span>
                 </div>
@@ -431,7 +498,6 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
                 <TableHead>Vehicles</TableHead>
                 <TableHead>Last Visit</TableHead>
                 <TableHead>Total Spent</TableHead>
-                <TableHead>Services</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -443,7 +509,7 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => handleViewProfile(customer)}
+                  onClick={() => handleCustomerClick(customer)}
                   className="border-b cursor-pointer hover:bg-gray-50 transition-colors"
                 >
                   <TableCell>
@@ -479,26 +545,34 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="bg-theme-50 text-theme border-theme-200">
-                      {customer.vehicles}
-                    </Badge>
+                    <button
+                      type="button"
+                      onClick={(e) => handleShowVehicles(e, customer)}
+                      className="focus:outline-none"
+                    >
+                      <Badge variant="outline" className="bg-theme-50 text-theme border-theme-200 cursor-pointer hover:bg-theme-100 transition-colors">
+                        {customer.vehicles}
+                      </Badge>
+                    </button>
                   </TableCell>
-                  <TableCell className="text-gray-600">{customer.lastVisit}</TableCell>
+                  <TableCell className="text-gray-600">
+                    {getLastVisit(customer.id) === "N/A"
+                      ? "N/A"
+                      : formatDisplayDate(getLastVisit(customer.id))}
+                  </TableCell>
                   <TableCell className="font-medium">₨{customer.totalSpent.toLocaleString()}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                      {customer.serviceHistory}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        customer.status === "VIP" ? "bg-purple-100 text-purple-700 border-purple-200" :
-                        "bg-green-100 text-green-700 border-green-200"
-                      }
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newStatus = customer.status === "Inactive" ? "Active" : "Inactive";
+                        setStatusChangeTarget({ customer, newStatus });
+                      }}
+                      className={`rounded-full px-3 py-1 text-sm font-medium border transition-colors hover:opacity-90 ${getStatusPillClass()}`}
                     >
                       {customer.status}
-                    </Badge>
+                    </button>
                   </TableCell>
                   <TableCell>
                     <Button 
@@ -575,36 +649,74 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
         </Dialog>
       )}
 
-      {/* Customer Profile Modal */}
-      {isProfileOpen && selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
+      {/* Vehicles list modal */}
+      {vehiclesModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setVehiclesModal(null)}
+          role="presentation"
+        >
+          <Card
+            className="w-full max-w-lg p-6 bg-white"
+            onClick={(e) => e.stopPropagation()}
           >
-            <CustomerProfile
-              customer={{
-                ...selectedCustomer,
-                email: selectedCustomer.email || "",
-                address: selectedCustomer.address || "",
-              }}
-              onClose={() => setIsProfileOpen(false)}
-              onNavigate={onNavigate}
-              onNewService={() => {
-                setIsProfileOpen(false);
-                onNavigate?.("invoices");
-                setShowCreateInvoice?.(true);
-              }}
-              onAddVehicle={() => {
-                setIsProfileOpen(false);
-                onNavigate?.("vehicles");
-              }}
-            />
-          </motion.div>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-slate-900">Vehicles</h3>
+              <p className="text-sm text-slate-500 mt-2">
+                {vehiclesModal.customer.name} has {vehiclesModal.vehicles.length} vehicle
+                {vehiclesModal.vehicles.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {vehiclesModalLoading ? (
+                <p className="text-sm text-slate-500 py-4">Loading vehicles…</p>
+              ) : vehiclesModal.vehicles.length === 0 ? (
+                <p className="text-sm text-slate-500 py-4">No vehicles found.</p>
+              ) : (
+                vehiclesModal.vehicles.map((vehicle) => (
+                  <div
+                    key={vehicle.id}
+                    className="w-full p-4 text-left border border-slate-200 rounded-lg bg-slate-50/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-theme-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Car className="h-5 w-5 text-theme" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900">
+                          {vehicle.carMake} {vehicle.carModel} {vehicle.carYear ? `(${vehicle.carYear})` : ""}
+                        </p>
+                        <p className="text-sm text-slate-500">{vehicle.vehicleNumber}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
         </div>
       )}
+
+      {/* Change status confirmation */}
+      <AlertDialog open={!!statusChangeTarget} onOpenChange={(open) => !open && setStatusChangeTarget(null)}>
+        <AlertDialogContent className="rounded-xl border border-gray-200 bg-white shadow-lg sm:max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-800">
+              {statusChangeTarget?.newStatus === "Active" ? "Mark as Active?" : "Mark as Inactive?"}
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel className="border-gray-200">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleStatusChangeConfirm}
+              className="bg-theme hover:bg-theme-dark text-white"
+            >
+              {statusChangeTarget?.newStatus === "Active" ? "Mark as Active" : "Mark as Inactive"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
