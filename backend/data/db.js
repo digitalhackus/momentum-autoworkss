@@ -184,6 +184,9 @@ async function addInvoice(invoiceData) {
     date: currentDate,
     servicesCount: invoiceData.items?.length || 0,
   };
+  if (invoiceData.status === "Paid") {
+    newInvoice.paymentDate = currentDate;
+  }
   await Invoice.create(newInvoice);
 
   const customer = await Customer.findOne({ id: invoiceData.customerId });
@@ -210,6 +213,17 @@ async function addInvoice(invoiceData) {
 }
 
 async function updateInvoice(id, updates) {
+  if (updates.status) {
+    const existing = await Invoice.findOne({ id }).lean();
+    if (existing && existing.status !== updates.status) {
+      if (updates.status === "Paid") {
+        updates.paymentDate = new Date().toISOString().split("T")[0];
+      } else {
+        updates.paymentDate = null;
+      }
+    }
+  }
+
   const doc = await Invoice.findOneAndUpdate(
     { id },
     { $set: updates },
@@ -561,7 +575,14 @@ async function getDailyCloseByDate(date) {
 }
 
 async function getDailyClosePreview(date) {
-  const paidInvoices = await Invoice.find({ date, status: "Paid" }).lean();
+  const paidInvoices = await Invoice.find({
+    status: "Paid",
+    $or: [
+      { paymentDate: date },
+      { paymentDate: { $exists: false }, date: date },
+      { paymentDate: null, date: date }
+    ]
+  }).lean();
   const stockIns = await StockIn.find({ date }).lean();
   const payments = await VendorPayment.find({ date }).lean();
 
