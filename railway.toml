@@ -1,0 +1,7 @@
+# This file configures the Railway deployment.
+
+# Command to build the project
+buildCommand = "npm install"
+
+# Command to start the project
+startCommand = "node server.js"
