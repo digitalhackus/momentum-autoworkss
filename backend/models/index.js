@@ -21,6 +21,7 @@ const InvoiceSchema = new mongoose.Schema({
   plate: String,
   carYear: String,
   date: String,
+  paymentDate: String,
   amount: Number,
   status: String,
   paymentMethod: String,
