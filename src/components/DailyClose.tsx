@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import { useData, DailyCloseRecord } from "../contexts/DataContext";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -153,7 +154,62 @@ export function DailyClose() {
           </Card>
         ) : (
           <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="lg:hidden divide-y divide-slate-100">
+              {dailyCloses.map((record, index) => (
+                <motion.div
+                  key={record.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(index * 0.02, 0.2) }}
+                  onClick={() => handleViewRecord(record)}
+                  className="p-4 space-y-3 active:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-theme-100 rounded-lg">
+                        <CalendarCheck className="h-5 w-5 text-theme" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">{formatDate(record.date)}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{record.date}</p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px] h-5 px-1.5">
+                      <Lock className="h-2.5 w-2.5 mr-1" />
+                      Closed
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 py-2 border-y border-slate-50">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Revenue</p>
+                      <p className="text-xs font-bold text-green-600">{formatCurrency(record.totalRevenue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Expenses</p>
+                      <p className="text-xs font-bold text-red-600">{formatCurrency(record.totalExpenses)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Profit</p>
+                      <p className={`text-xs font-bold ${record.netProfit >= 0 ? "text-blue-600" : "text-orange-600"}`}>
+                        {formatCurrency(record.netProfit)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <div className="flex items-center text-xs font-bold text-theme">
+                      View Summary
+                      <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-gray-50">

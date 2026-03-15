@@ -3,6 +3,7 @@ import { useData } from "../contexts/DataContext";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { motion } from "framer-motion";
 import {
   Receipt,
   Plus,
@@ -340,61 +341,137 @@ export function Expenses() {
         </CardContent>
       </Card>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <table className="w-full table-fixed">
-          <thead className="bg-gradient-to-r from-slate-50 to-theme-50 border-b border-theme-100">
-            <tr>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[10%]">ID</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[14%]">Category</th>
-              <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[12%]">Amount</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Date</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Payment method</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[24%]">Notes</th>
-              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[16%]">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+      <Card>
+        <CardContent className="pt-6">
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
             {filteredExpenses.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
-                  No expenses found. Add one or adjust filters.
-                </td>
-              </tr>
+              <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                No expenses found.
+              </div>
             ) : (
-              filteredExpenses.map((e) => (
-                <tr key={e.id} className="hover:bg-theme-50/50">
-                  <td className="px-3 py-3 text-sm font-medium text-slate-900">{e.id}</td>
-                  <td className="px-3 py-3 text-sm text-slate-700">{e.category}</td>
-                  <td className="px-3 py-3 text-sm text-right font-medium text-theme">₨{Number(e.amount).toLocaleString()}</td>
-                  <td className="px-3 py-3 text-sm text-slate-700">{formatDisplayDate(e.date)}</td>
-                  <td className="px-3 py-3 text-sm text-slate-700 capitalize">{e.payment_method}</td>
-                  <td className="px-3 py-3 text-sm text-slate-600 truncate max-w-[200px]" title={e.notes || ""}>{e.notes || "—"}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(e)}
-                        className="text-theme hover:bg-theme-50"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteConfirmId(e.id)}
-                        className="text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+              filteredExpenses.map((e, index) => (
+                <motion.div
+                  key={e.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(index * 0.02, 0.2) }}
+                  className="p-4 border rounded-lg space-y-3 hover:border-theme-300 hover:bg-theme-50/50 transition-all"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-theme-100 rounded-lg">
+                        <Receipt className="h-5 w-5 text-theme" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">{e.category}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{e.id}</p>
+                      </div>
                     </div>
-                  </td>
-                </tr>
+                    <p className="font-bold text-theme">₨{Number(e.amount).toLocaleString()}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 py-2 border-y border-slate-50">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Date</p>
+                      <p className="text-sm font-bold text-slate-700">{formatDisplayDate(e.date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Payment</p>
+                      <p className="text-sm font-bold text-slate-700 capitalize">{e.payment_method}</p>
+                    </div>
+                  </div>
+
+                  {e.notes && (
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</p>
+                      <p className="text-sm text-slate-600 italic line-clamp-2">{e.notes}</p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(e)}
+                      className="h-8 text-xs font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+                    >
+                      <Edit className="h-3.5 w-3.5 mr-1.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDeleteConfirmId(e.id)}
+                      className="h-8 text-xs font-bold border-red-100 text-red-600 hover:bg-red-50 hover:border-red-200"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      Delete
+                    </Button>
+                  </div>
+                </motion.div>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full table-fixed">
+              <thead className="bg-gradient-to-r from-slate-50 to-theme-50 border-b border-theme-100">
+                <tr>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[10%]">ID</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[14%]">Category</th>
+                  <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[12%]">Amount</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Date</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Payment method</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[24%]">Notes</th>
+                  <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[16%]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredExpenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
+                      No expenses found. Add one or adjust filters.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredExpenses.map((e) => (
+                    <tr key={e.id} className="hover:bg-theme-50/50">
+                      <td className="px-3 py-3 text-sm font-medium text-slate-900">{e.id}</td>
+                      <td className="px-3 py-3 text-sm text-slate-700">{e.category}</td>
+                      <td className="px-3 py-3 text-sm text-right font-medium text-theme">₨{Number(e.amount).toLocaleString()}</td>
+                      <td className="px-3 py-3 text-sm text-slate-700">{formatDisplayDate(e.date)}</td>
+                      <td className="px-3 py-3 text-sm text-slate-700 capitalize">{e.payment_method}</td>
+                      <td className="px-3 py-3 text-sm text-slate-600 truncate max-w-[200px]" title={e.notes || ""}>{e.notes || "—"}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(e)}
+                            className="text-theme hover:bg-theme-50"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteConfirmId(e.id)}
+                            className="text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-[450px]" aria-describedby={undefined}>
