@@ -44,7 +44,7 @@ export function Settings() {
   const [taxRateCash, setTaxRateCash] = useState(theme.taxRates?.cash ?? 0);
   const [taxRateCard, setTaxRateCard] = useState(theme.taxRates?.card ?? 18);
   const [taxRateOnline, setTaxRateOnline] = useState(theme.taxRates?.online ?? 18);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(theme.logoPreview || null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [taxSaveSuccess, setTaxSaveSuccess] = useState(false);
   const formatPkPhone = (value: string) => {

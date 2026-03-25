@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { InvoiceTemplate } from "./InvoiceTemplate";
+import { useTheme } from "../contexts/ThemeContext";
 import { formatDisplayDate } from "../utils/dateFormat";
 import { 
   ArrowLeft,
@@ -50,6 +51,7 @@ interface InvoiceDetailProps {
 
 export function InvoiceDetail({ invoice, onClose, onEdit, onMarkPaid }: InvoiceDetailProps) {
   const [showInvoicePreview, setShowInvoicePreview] = useState(true);
+  const { theme } = useTheme();
   
   // Check if invoice is editable (only unpaid invoices can be edited)
   const isEditable = invoice.status !== 'Paid';
@@ -183,6 +185,11 @@ export function InvoiceDetail({ invoice, onClose, onEdit, onMarkPaid }: InvoiceD
                   taxPercentage={invoice.taxPercentage}
                   grandTotal={invoice.amount}
                   paymentStatus={invoice.status === 'Paid' ? 'Paid' : 'Unpaid'}
+                  companyName={theme.workshopName}
+                  companyEmail={theme.workshopEmail}
+                  companyAddress={theme.workshopAddress}
+                  companyPhone={theme.workshopPhone}
+                  companyLogo={theme.logoPreview}
                 />
               </div>
             </div>

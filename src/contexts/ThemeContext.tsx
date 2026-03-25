@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { api } from '../api/client';
 
 export interface ThemeSettings {
   primaryColor: string;
@@ -42,7 +43,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemeSettings>(() => {
-    // Load theme from localStorage on mount
+    // Load theme from localStorage on mount as initial fallback
     const savedTheme = localStorage.getItem('momentumTheme');
     if (savedTheme) {
       try {
@@ -53,6 +54,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
     return defaultTheme;
   });
+
+  // Fetch settings from the backend on mount and merge into theme
+  useEffect(() => {
+    let cancelled = false;
+    api.getSettings().then((remote) => {
+      if (cancelled) return;
+      setTheme(prev => ({
+        ...prev,
+        workshopName: remote.workshopName || prev.workshopName,
+        workshopPhone: remote.workshopPhone || prev.workshopPhone,
+        workshopEmail: remote.workshopEmail || prev.workshopEmail,
+        workshopAddress: remote.workshopAddress || prev.workshopAddress,
+        primaryColor: remote.primaryColor || prev.primaryColor,
+        logoPreview: remote.logoBase64 || prev.logoPreview || null,
+        taxRates: remote.taxRates || prev.taxRates,
+      }));
+    }).catch(() => {
+      // Silently fall back to localStorage values if backend is unavailable
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Save theme to localStorage whenever it changes
   useEffect(() => {
@@ -81,9 +103,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
   }, [theme]);
 
-  const updateTheme = (updates: Partial<ThemeSettings>) => {
-    setTheme(prev => ({ ...prev, ...updates }));
-  };
+  const updateTheme = useCallback((updates: Partial<ThemeSettings>) => {
+    setTheme(prev => {
+      const next = { ...prev, ...updates };
+
+      // Persist to backend (fire-and-forget)
+      const payload: Record<string, unknown> = {};
+      if (updates.workshopName !== undefined) payload.workshopName = updates.workshopName;
+      if (updates.workshopPhone !== undefined) payload.workshopPhone = updates.workshopPhone;
+      if (updates.workshopEmail !== undefined) payload.workshopEmail = updates.workshopEmail;
+      if (updates.workshopAddress !== undefined) payload.workshopAddress = updates.workshopAddress;
+      if (updates.primaryColor !== undefined) payload.primaryColor = updates.primaryColor;
+      if (updates.taxRates !== undefined) payload.taxRates = updates.taxRates;
+      // Save logo as logoBase64 in the backend
+      if (updates.logoPreview !== undefined) payload.logoBase64 = updates.logoPreview;
+
+      if (Object.keys(payload).length > 0) {
+        api.updateSettings(payload as Parameters<typeof api.updateSettings>[0]).catch(() => {
+          // Silently fail — localStorage still has the data
+        });
+      }
+
+      return next;
+    });
+  }, []);
 
   const resetTheme = () => {
     setTheme(defaultTheme);
