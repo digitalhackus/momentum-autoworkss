@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useData } from "../contexts/DataContext";
 import type { SalaryRecord as SalaryRecordType, Employee } from "../contexts/DataContext";
 import { Button } from "./ui/button";
@@ -279,81 +280,175 @@ export function SalaryRecords({ onNavigate }: SalaryRecordsProps) {
         </CardContent>
       </Card>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <table className="w-full table-fixed">
-          <thead className="bg-gradient-to-r from-slate-50 to-theme-50 border-b border-theme-100">
-            <tr>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[16%]">Employee</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Month / Year</th>
-              <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[10%]">Salary</th>
-              <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[8%]">Bonus</th>
-              <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[8%]">Deduction</th>
-              <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[10%]">Total</th>
-              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[10%]">Status</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Payment method</th>
-              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[14%]">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+      <Card>
+        <CardContent className="pt-6">
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
             {filteredRecords.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-slate-500">
-                  No salary records found. Generate one or adjust filters.
-                </td>
-              </tr>
+              <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                No salary records found.
+              </div>
             ) : (
-              filteredRecords.map((r) => (
-                <tr key={r.id} className="hover:bg-theme-50/50">
-                  <td className="px-3 py-3 text-sm font-medium text-slate-900">{getEmployeeName(r.employee_id)}</td>
-                  <td className="px-3 py-3 text-sm text-slate-700">{MONTHS[r.month - 1]} {r.year}</td>
-                  <td className="px-3 py-3 text-sm text-right text-slate-700">₨{Number(r.salary_amount).toLocaleString()}</td>
-                  <td className="px-3 py-3 text-sm text-right text-slate-700">₨{Number(r.bonus).toLocaleString()}</td>
-                  <td className="px-3 py-3 text-sm text-right text-slate-700">₨{Number(r.deduction).toLocaleString()}</td>
-                  <td className="px-3 py-3 text-sm text-right font-medium text-theme">₨{Number(r.total_salary).toLocaleString()}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex justify-center">
+              filteredRecords.map((r, index) => (
+                <motion.div
+                  key={r.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(index * 0.02, 0.2) }}
+                  className="p-4 border rounded-lg space-y-3 hover:border-theme-300 hover:bg-theme-50/50 transition-all"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-theme-100 rounded-lg">
+                        <FileText className="h-5 w-5 text-theme" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">{getEmployeeName(r.employee_id)}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {MONTHS[r.month - 1]} {r.year}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="font-bold text-theme">₨{Number(r.total_salary).toLocaleString()}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 py-2 border-y border-slate-50">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
                       {r.payment_status === "paid" ? (
-                        <Badge className="bg-green-600 text-white">Paid</Badge>
+                        <Badge className="bg-green-600 text-white text-[10px] h-5 px-1.5">Paid</Badge>
                       ) : (
-                        <Badge className="bg-slate-600 text-white">Unpaid</Badge>
+                        <Badge className="bg-slate-600 text-white text-[10px] h-5 px-1.5">Unpaid</Badge>
                       )}
                     </div>
-                  </td>
-                  <td className="px-3 py-3 text-sm text-slate-700 capitalize">
-                    {r.payment_status === "paid" && r.payment_method
-                      ? r.payment_method.charAt(0).toUpperCase() + (r.payment_method.slice(1) || "").toLowerCase()
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex justify-center gap-2">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Payment</p>
+                      <p className="text-sm font-bold text-slate-700 capitalize">
+                        {r.payment_status === "paid" && r.payment_method ? r.payment_method : "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 py-1">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Salary</p>
+                      <p className="text-xs font-bold text-slate-700">₨{Number(r.salary_amount).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Bonus</p>
+                      <p className="text-xs font-bold text-green-600">₨{Number(r.bonus).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Deduct.</p>
+                      <p className="text-xs font-bold text-red-600">₨{Number(r.deduction).toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDetailRecord(r)}
+                      className="h-8 text-xs font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1.5" />
+                      View
+                    </Button>
+                    {r.payment_status === "unpaid" && (
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDetailRecord(r)}
-                        className="h-8 w-8 text-slate-600 hover:bg-slate-100"
-                        title="View details"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setMarkPaidId(r.id); setMarkPaidMethod("cash"); }}
+                        className="h-8 text-xs font-bold border-green-100 text-green-600 hover:bg-green-50 hover:border-green-200"
                       >
-                        <Eye className="h-4 w-4" />
+                        <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                        Mark Paid
                       </Button>
-                      {r.payment_status === "unpaid" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => { setMarkPaidId(r.id); setMarkPaidMethod("cash"); }}
-                          className="h-8 w-8 text-green-600 hover:bg-green-50"
-                          title="Mark as paid"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                    )}
+                  </div>
+                </motion.div>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full table-fixed">
+              <thead className="bg-gradient-to-r from-slate-50 to-theme-50 border-b border-theme-100">
+                <tr>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[16%]">Employee</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Month / Year</th>
+                  <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[10%]">Salary</th>
+                  <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[8%]">Bonus</th>
+                  <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[8%]">Deduction</th>
+                  <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[10%]">Total</th>
+                  <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[10%]">Status</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Payment method</th>
+                  <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[14%]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-3 py-8 text-center text-slate-500">
+                      No salary records found. Generate one or adjust filters.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredRecords.map((r) => (
+                    <tr key={r.id} className="hover:bg-theme-50/50">
+                      <td className="px-3 py-3 text-sm font-medium text-slate-900">{getEmployeeName(r.employee_id)}</td>
+                      <td className="px-3 py-3 text-sm text-slate-700">{MONTHS[r.month - 1]} {r.year}</td>
+                      <td className="px-3 py-3 text-sm text-right text-slate-700">₨{Number(r.salary_amount).toLocaleString()}</td>
+                      <td className="px-3 py-3 text-sm text-right text-slate-700">₨{Number(r.bonus).toLocaleString()}</td>
+                      <td className="px-3 py-3 text-sm text-right text-slate-700">₨{Number(r.deduction).toLocaleString()}</td>
+                      <td className="px-3 py-3 text-sm text-right font-medium text-theme">₨{Number(r.total_salary).toLocaleString()}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          {r.payment_status === "paid" ? (
+                            <Badge className="bg-green-600 text-white">Paid</Badge>
+                          ) : (
+                            <Badge className="bg-slate-600 text-white">Unpaid</Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-slate-700 capitalize">
+                        {r.payment_status === "paid" && r.payment_method
+                          ? r.payment_method.charAt(0).toUpperCase() + (r.payment_method.slice(1) || "").toLowerCase()
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDetailRecord(r)}
+                            className="h-8 w-8 text-slate-600 hover:bg-slate-100"
+                            title="View details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {r.payment_status === "unpaid" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => { setMarkPaidId(r.id); setMarkPaidMethod("cash"); }}
+                              className="h-8 w-8 text-green-600 hover:bg-green-50"
+                              title="Mark as paid"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Generate Salary Modal */}
       <Dialog open={showGenerateModal} onOpenChange={setShowGenerateModal}>

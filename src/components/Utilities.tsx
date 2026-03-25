@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useData } from "../contexts/DataContext";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -387,88 +388,188 @@ export function Utilities() {
         </CardContent>
       </Card>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <table className="w-full table-fixed">
-          <thead className="bg-gradient-to-r from-slate-50 to-theme-50 border-b border-theme-100">
-            <tr>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[11%]">Type</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[16%]">Billing period</th>
-              <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[10%]">Amount</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[10%]">Due date</th>
-              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[9%]">Status</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[11%]">Payment method</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[17%]">Notes</th>
-              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[16%]">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+      <Card>
+        <CardContent className="pt-6">
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
             {filteredUtilities.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
-                  No utilities found. Add one or adjust filters.
-                </td>
-              </tr>
+              <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                No utilities found.
+              </div>
             ) : (
-              filteredUtilities.map((u) => (
-                <tr key={u.id} className="hover:bg-theme-50/50">
-                  <td className="px-3 py-3 text-sm font-medium text-slate-900">{getTypeName(u.utility_type_id)}</td>
-                  <td className="px-3 py-3 text-sm text-slate-700">
-                    {formatDisplayDate(u.billing_period_start)} → {formatDisplayDate(u.billing_period_end)}
-                  </td>
-                  <td className="px-3 py-3 text-sm text-right font-medium text-theme">₨{Number(u.amount).toLocaleString()}</td>
-                  <td className="px-3 py-3 text-sm text-slate-700">{formatDisplayDate(u.due_date)}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex justify-center">
+              filteredUtilities.map((u, index) => (
+                <motion.div
+                  key={u.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(index * 0.02, 0.2) }}
+                  className="p-4 border rounded-lg space-y-3 hover:border-theme-300 hover:bg-theme-50/50 transition-all"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-theme-100 rounded-lg">
+                        <Zap className="h-5 w-5 text-theme" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">{getTypeName(u.utility_type_id)}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {formatDisplayDate(u.billing_period_start)} → {formatDisplayDate(u.billing_period_end)}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="font-bold text-theme">₨{Number(u.amount).toLocaleString()}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 py-2 border-y border-slate-50">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Due Date</p>
+                      <p className="text-sm font-bold text-slate-700">{formatDisplayDate(u.due_date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
                       {u.status === "paid" ? (
-                        <Badge className="bg-green-600 text-white">Paid</Badge>
+                        <Badge className="bg-green-600 text-white text-[10px] h-5 px-1.5">Paid</Badge>
                       ) : (
-                        <Badge className="bg-amber-500 text-white">Unpaid</Badge>
+                        <Badge className="bg-amber-500 text-white text-[10px] h-5 px-1.5">Unpaid</Badge>
                       )}
                     </div>
-                  </td>
-                  <td className="px-3 py-3 text-sm text-slate-700 capitalize">
-                    {u.status === "paid" && u.payment_method
-                      ? u.payment_method.charAt(0).toUpperCase() + u.payment_method.slice(1).toLowerCase()
-                      : "—"}
-                  </td>
-                  <td className="px-3 py-3 text-sm text-slate-600 truncate max-w-[180px]" title={u.notes || ""}>{u.notes || "—"}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex justify-center gap-2 items-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(u)}
-                        className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        title="Edit"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (u.status === "paid") return;
-                          setMarkPaidId(u.id);
-                          setMarkPaidMethod("cash");
-                        }}
-                        disabled={u.status === "paid"}
-                        className={`h-8 w-8 disabled:pointer-events-none ${
-                          u.status === "paid"
-                            ? "text-green-600 opacity-100 cursor-default"
-                            : "text-slate-800 hover:bg-slate-100 hover:text-slate-900"
-                        }`}
-                        title={u.status === "paid" ? "Already paid" : "Mark as paid"}
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Payment</p>
+                      <p className="text-sm font-bold text-slate-700 capitalize">
+                        {u.status === "paid" && u.payment_method ? u.payment_method : "—"}
+                      </p>
                     </div>
-                  </td>
-                </tr>
+                  </div>
+
+                  {u.notes && (
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</p>
+                      <p className="text-sm text-slate-600 italic line-clamp-2">{u.notes}</p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(u)}
+                      className="h-8 text-xs font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+                    >
+                      <Edit className="h-3.5 w-3.5 mr-1.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (u.status === "paid") return;
+                        setMarkPaidId(u.id);
+                        setMarkPaidMethod("cash");
+                      }}
+                      disabled={u.status === "paid"}
+                      className={`h-8 text-xs font-bold border-slate-200 ${
+                        u.status === "paid"
+                          ? "text-green-600 bg-green-50 border-green-100"
+                          : "text-slate-800 hover:bg-slate-100"
+                      }`}
+                    >
+                      <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                      {u.status === "paid" ? "Paid" : "Mark Paid"}
+                    </Button>
+                  </div>
+                </motion.div>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full table-fixed">
+              <thead className="bg-gradient-to-r from-slate-50 to-theme-50 border-b border-theme-100">
+                <tr>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[11%]">Type</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[16%]">Billing period</th>
+                  <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[10%]">Amount</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[10%]">Due date</th>
+                  <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[9%]">Status</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[11%]">Payment method</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[17%]">Notes</th>
+                  <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[16%]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredUtilities.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
+                      No utilities found. Add one or adjust filters.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUtilities.map((u) => (
+                    <tr key={u.id} className="hover:bg-theme-50/50">
+                      <td className="px-3 py-3 text-sm font-medium text-slate-900">{getTypeName(u.utility_type_id)}</td>
+                      <td className="px-3 py-3 text-sm text-slate-700">
+                        {formatDisplayDate(u.billing_period_start)} → {formatDisplayDate(u.billing_period_end)}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-right font-medium text-theme">₨{Number(u.amount).toLocaleString()}</td>
+                      <td className="px-3 py-3 text-sm text-slate-700">{formatDisplayDate(u.due_date)}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          {u.status === "paid" ? (
+                            <Badge className="bg-green-600 text-white">Paid</Badge>
+                          ) : (
+                            <Badge className="bg-amber-500 text-white">Unpaid</Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-slate-700 capitalize">
+                        {u.status === "paid" && u.payment_method
+                          ? u.payment_method.charAt(0).toUpperCase() + u.payment_method.slice(1).toLowerCase()
+                          : "—"}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-slate-600 truncate max-w-[180px]" title={u.notes || ""}>{u.notes || "—"}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center gap-2 items-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(u)}
+                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (u.status === "paid") return;
+                              setMarkPaidId(u.id);
+                              setMarkPaidMethod("cash");
+                            }}
+                            disabled={u.status === "paid"}
+                            className={`h-8 w-8 disabled:pointer-events-none ${
+                              u.status === "paid"
+                                ? "text-green-600 opacity-100 cursor-default"
+                                : "text-slate-800 hover:bg-slate-100 hover:text-slate-900"
+                            }`}
+                            title={u.status === "paid" ? "Already paid" : "Mark as paid"}
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-[450px]" aria-describedby={undefined}>

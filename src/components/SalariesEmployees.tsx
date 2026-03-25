@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useData } from "../contexts/DataContext";
 import type { Employee } from "../contexts/DataContext";
 import { Button } from "./ui/button";
@@ -210,71 +211,156 @@ export function SalariesEmployees({ onNavigate }: SalariesEmployeesProps) {
         </CardContent>
       </Card>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <table className="w-full table-fixed">
-          <thead className="bg-gradient-to-r from-slate-50 to-theme-50 border-b border-theme-100">
-            <tr>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[18%]">Name</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[14%]">Phone</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[14%]">Role</th>
-              <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[12%]">Monthly Salary</th>
-              <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Joining Date</th>
-              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[10%]">Status</th>
-              <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[20%]">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
+      <Card>
+        <CardContent className="pt-6">
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
             {filteredEmployees.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
-                  No employees found. Add one or adjust search.
-                </td>
-              </tr>
+              <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                No employees found.
+              </div>
             ) : (
-              filteredEmployees.map((emp) => (
-                <tr key={emp.id} className="hover:bg-theme-50/50">
-                  <td className="px-3 py-3 text-sm font-medium text-slate-900">{emp.name}</td>
-                  <td className="px-3 py-3 text-sm text-slate-700">{emp.phone || "—"}</td>
-                  <td className="px-3 py-3 text-sm text-slate-700">{emp.role || "—"}</td>
-                  <td className="px-3 py-3 text-sm text-right font-medium text-theme">₨{Number(emp.monthly_salary).toLocaleString()}</td>
-                  <td className="px-3 py-3 text-sm text-slate-700">{emp.joining_date ? formatDisplayDate(emp.joining_date) : "—"}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex justify-center">
+              filteredEmployees.map((emp, index) => (
+                <motion.div
+                  key={emp.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(index * 0.02, 0.2) }}
+                  className="p-4 border rounded-lg space-y-3 hover:border-theme-300 hover:bg-theme-50/50 transition-all"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-theme-100 rounded-lg">
+                        <UserCircle className="h-5 w-5 text-theme" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">{emp.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{emp.role || "No Role"}</p>
+                      </div>
+                    </div>
+                    <p className="font-bold text-theme">₨{Number(emp.monthly_salary).toLocaleString()}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 py-2 border-y border-slate-50">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Phone</p>
+                      <p className="text-sm font-bold text-slate-700">{emp.phone || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
                       {emp.is_active === true ? (
-                        <Badge className="bg-green-600 text-white">Active</Badge>
+                        <Badge className="bg-green-600 text-white text-[10px] h-5 px-1.5">Active</Badge>
                       ) : (
-                        <Badge className="bg-slate-400 text-white">Inactive</Badge>
+                        <Badge className="bg-slate-400 text-white text-[10px] h-5 px-1.5">Inactive</Badge>
                       )}
                     </div>
-                  </td>
-                  <td className="px-3 py-3">
-                    <div className="flex justify-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(emp)}
-                        className="h-8 w-8 text-theme hover:bg-theme-50"
-                        title="Edit"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleToggleActive(emp)}
-                        className={emp.is_active ? "h-8 w-8 text-amber-600 hover:bg-amber-50" : "h-8 w-8 text-green-600 hover:bg-green-50"}
-                        title={emp.is_active ? "Deactivate" : "Activate"}
-                      >
-                        {emp.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Joining Date</p>
+                    <p className="text-sm font-bold text-slate-700">{emp.joining_date ? formatDisplayDate(emp.joining_date) : "—"}</p>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(emp)}
+                      className="h-8 text-xs font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+                    >
+                      <Edit className="h-3.5 w-3.5 mr-1.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleToggleActive(emp)}
+                      className={`h-8 text-xs font-bold border-slate-200 ${
+                        emp.is_active
+                          ? "text-amber-600 border-amber-100 hover:bg-amber-50"
+                          : "text-green-600 border-green-100 hover:bg-green-50"
+                      }`}
+                    >
+                      {emp.is_active ? (
+                        <><UserX className="h-3.5 w-3.5 mr-1.5" /> Deactivate</>
+                      ) : (
+                        <><UserCheck className="h-3.5 w-3.5 mr-1.5" /> Activate</>
+                      )}
+                    </Button>
+                  </div>
+                </motion.div>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full table-fixed">
+              <thead className="bg-gradient-to-r from-slate-50 to-theme-50 border-b border-theme-100">
+                <tr>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[18%]">Name</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[14%]">Phone</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[14%]">Role</th>
+                  <th className="px-3 py-4 text-right text-xs font-semibold text-slate-700 uppercase w-[12%]">Monthly Salary</th>
+                  <th className="px-3 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-[12%]">Joining Date</th>
+                  <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[10%]">Status</th>
+                  <th className="px-3 py-4 text-center text-xs font-semibold text-slate-700 uppercase w-[20%]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredEmployees.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
+                      No employees found. Add one or adjust search.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredEmployees.map((emp) => (
+                    <tr key={emp.id} className="hover:bg-theme-50/50">
+                      <td className="px-3 py-3 text-sm font-medium text-slate-900">{emp.name}</td>
+                      <td className="px-3 py-3 text-sm text-slate-700">{emp.phone || "—"}</td>
+                      <td className="px-3 py-3 text-sm text-slate-700">{emp.role || "—"}</td>
+                      <td className="px-3 py-3 text-sm text-right font-medium text-theme">₨{Number(emp.monthly_salary).toLocaleString()}</td>
+                      <td className="px-3 py-3 text-sm text-slate-700">{emp.joining_date ? formatDisplayDate(emp.joining_date) : "—"}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center">
+                          {emp.is_active === true ? (
+                            <Badge className="bg-green-600 text-white">Active</Badge>
+                          ) : (
+                            <Badge className="bg-slate-400 text-white">Inactive</Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(emp)}
+                            className="h-8 w-8 text-theme hover:bg-theme-50"
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleActive(emp)}
+                            className={emp.is_active ? "h-8 w-8 text-amber-600 hover:bg-amber-50" : "h-8 w-8 text-green-600 hover:bg-green-50"}
+                            title={emp.is_active ? "Deactivate" : "Activate"}
+                          >
+                            {emp.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-[450px]" aria-describedby={undefined}>

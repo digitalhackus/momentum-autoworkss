@@ -29,7 +29,9 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "https://motorworks.pk",
-  "https://www.motorworks.pk"
+  "https://www.motorworks.pk",
+  "https://maws.pk", 
+  "https://www.maws.pk"
 ];
 app.use(
   cors({

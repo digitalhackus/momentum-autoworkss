@@ -10,6 +10,21 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription } from "./ui/alert";
 import { Separator } from "./ui/separator";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { 
   Car, 
   Search, 
@@ -37,11 +52,9 @@ type DisplayVehicle = {
   plate: string;
   owner: string;
   ownerId: string;
-  mileage?: string;
-  lastService?: string;
-  nextService?: string;
-  oilType?: string;
-  serviceHistory?: number;
+  totalInvoices: number;
+  totalSpent: number;
+  lastActivity: string;
   status?: string;
 };
 
@@ -58,11 +71,12 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
   const [step, setStep] = useState<"customer" | "newCustomer" | "vehicle">("customer");
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
-  const [selectedVehicle, setSelectedVehicle] = useState<DisplayVehicle | null>(null);
   const [showOwnerAlert, setShowOwnerAlert] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
   const [vehicles, setVehicles] = useState<DisplayVehicle[]>([]);
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusChangeTarget, setStatusChangeTarget] = useState<{ vehicle: DisplayVehicle; newStatus: string } | null>(null);
 
   // New customer form state (used when adding vehicle and creating customer in same flow)
   const [newCustomerForm, setNewCustomerForm] = useState({
@@ -80,27 +94,14 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
     return sum + (isNaN(n) ? 0 : n);
   }, 0);
 
-  const activeServicesCount = invoices
-    .filter((inv) => inv.status !== "Paid")
-    .reduce((sum, inv) => sum + (typeof inv.servicesCount === "number" ? inv.servicesCount : 0), 0);
+  const totalCustomersCount = customers.length;
 
-  const daysBetween = (dateStr: string) => {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return 0;
-    const diffMs = Date.now() - d.getTime();
-    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  };
+  const vehicleRevenue = invoices
+    .filter((inv) => inv.status === "Paid")
+    .reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
 
-  const serviceDueCount = customers.filter((c) => {
-    const days = daysBetween(c.lastVisit);
-    return days >= 90 && days < 180;
-  }).length;
-
-  const overdueCount = customers.filter((c) => {
-    const days = daysBetween(c.lastVisit);
-    return days >= 180;
-  }).length;
-
+  const vehiclesWithInvoices = new Set(invoices.map((inv) => inv.plate));
+  
   useEffect(() => {
     try {
       const newCustomerId = localStorage.getItem("newCustomerId");
@@ -119,40 +120,74 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
       }
     } catch {}
   }, [customers]);
-  
+
   useEffect(() => {
     const loadAllVehicles = async () => {
       setVehiclesLoading(true);
       try {
-        const all: DisplayVehicle[] = [];
-        for (const c of customers) {
-          const list = await getCustomerVehicles(c.id);
-          for (const v of list) {
-            all.push({
-              id: v.id,
-              make: v.carMake || "",
-              model: v.carModel || "",
-              year: v.carYear || "",
-              plate: v.vehicleNumber || "",
-              owner: c.name,
-              ownerId: c.id,
-              status: "Active",
-              serviceHistory: 0,
+        const results = await Promise.all(
+          customers.map(async (c) => {
+            const list = await getCustomerVehicles(c.id);
+            return list.map((v) => {
+              const vehicleInvoices = invoices.filter(
+                (inv) => inv.plate === v.vehicleNumber
+              );
+              const paidInvoices = vehicleInvoices.filter(
+                (inv) => inv.status === "Paid"
+              );
+              const totalSpent = paidInvoices.reduce(
+                (sum, inv) => sum + (Number(inv.amount) || 0),
+                0
+              );
+              const lastInvoice = vehicleInvoices.sort(
+                (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+              )[0];
+
+              return {
+                id: v.id,
+                make: v.carMake || "",
+                model: v.carModel || "",
+                year: v.carYear || "",
+                plate: v.vehicleNumber || "",
+                owner: c.name,
+                ownerId: c.id,
+                totalInvoices: vehicleInvoices.length,
+                totalSpent: totalSpent,
+                lastActivity: lastInvoice ? lastInvoice.date : "No activity",
+                status: "Active",
+              };
             });
-          }
-        }
-        setVehicles(all);
+          })
+        );
+        setVehicles(results.flat());
+      } catch (error) {
+        console.error("Failed to load vehicles:", error);
+        toast.error("Could not load vehicle registry.");
       } finally {
         setVehiclesLoading(false);
       }
     };
     loadAllVehicles();
-  }, [customers, getCustomerVehicles]);
+  }, [customers, getCustomerVehicles, invoices]);
+
+  const vehiclesWithoutInvoicesCount = vehicles.filter(v => v.totalInvoices === 0).length;
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
     customer.phone.includes(customerSearch) ||
     (customer.email && customer.email.toLowerCase().includes(customerSearch.toLowerCase()))
   );
+
+  const filteredVehicles = vehicles.filter((v) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = (
+      v.plate.toLowerCase().includes(q) ||
+      v.owner.toLowerCase().includes(q) ||
+      v.make.toLowerCase().includes(q) ||
+      v.model.toLowerCase().includes(q)
+    );
+    const matchesStatus = statusFilter === "all" || v.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const handleCustomerSelect = (customer: CustomerOption) => {
     setSelectedCustomer({
@@ -232,59 +267,6 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
       });
     }, 200);
   };
-
-  const handleVehicleClick = (vehicle: typeof vehicles[0]) => {
-    setSelectedVehicle(vehicle);
-  };
-
-  const handleCloseVehicleProfile = () => {
-    setSelectedVehicle(null);
-  };
-
-  // If a vehicle is selected, show the VehicleProfile
-  if (selectedVehicle) {
-    return (
-      <VehicleProfile
-        vehicle={{
-          id: selectedVehicle.id,
-          make: selectedVehicle.make,
-          model: selectedVehicle.model,
-          year: selectedVehicle.year,
-          plate: selectedVehicle.plate,
-          ownerId: selectedVehicle.ownerId,
-          ownerName: selectedVehicle.owner,
-        }}
-        onClose={handleCloseVehicleProfile}
-        onEdit={() => toast.info("Edit vehicle coming soon")}
-        onDelete={async () => {
-          if (!selectedVehicle) return;
-          const confirm = window.confirm("Delete this vehicle?");
-          if (!confirm) return;
-          try {
-            await deleteVehicle(selectedVehicle.ownerId, selectedVehicle.id);
-            setVehicles((prev) => prev.filter((v) => v.id !== selectedVehicle.id));
-            toast.success("Vehicle deleted");
-            handleCloseVehicleProfile();
-          } catch (e) {
-            toast.error("Failed to delete vehicle");
-          }
-        }}
-        onViewOwner={(ownerId) => {
-          if (onNavigate) onNavigate("customers");
-          else toast.info("Owner profile navigation");
-        }}
-        onCreateJobCard={() => {
-          if (onNavigate) onNavigate("job-cards");
-          else toast.info("Navigating to Job Cards");
-        }}
-        onCreateInvoice={() => {
-          if (setShowCreateInvoice) setShowCreateInvoice(true);
-          if (onNavigate) onNavigate("invoices");
-          else toast.info("Navigating to Invoices");
-        }}
-      />
-    );
-  }
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -660,11 +642,11 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Active Services</p>
-                  <p className="text-3xl">{activeServicesCount}</p>
+                  <p className="text-sm text-gray-600 mb-1">Total Customers</p>
+                  <p className="text-3xl">{totalCustomersCount}</p>
                 </div>
                 <div className="p-3 bg-green-100 rounded-lg">
-                  <Wrench className="h-6 w-6 text-green-600" />
+                  <User className="h-6 w-6 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -680,11 +662,11 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Service Due</p>
-                  <p className="text-3xl">{serviceDueCount}</p>
+                  <p className="text-sm text-gray-600 mb-1">Vehicle Revenue</p>
+                  <p className="text-3xl">Rs. {vehicleRevenue.toLocaleString()}</p>
                 </div>
                 <div className="p-3 bg-orange-100 rounded-lg">
-                  <Calendar className="h-6 w-6 text-orange-600" />
+                  <Wrench className="h-6 w-6 text-orange-600" />
                 </div>
               </div>
             </CardContent>
@@ -700,8 +682,8 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Overdue</p>
-                  <p className="text-3xl">{overdueCount}</p>
+                  <p className="text-sm text-gray-600 mb-1">Vehicles Without Invoices</p>
+                  <p className="text-3xl">{vehiclesWithoutInvoicesCount}</p>
                 </div>
                 <div className="p-3 bg-red-100 rounded-lg">
                   <Calendar className="h-6 w-6 text-red-600" />
@@ -720,15 +702,39 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search by plate number, owner, or vehicle model..."
-                className="pl-10"
+                className="pl-10 h-11"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-10 border-slate-200 flex items-center gap-2 text-slate-600 font-medium px-4 hover:bg-slate-50 transition-colors">
+                  <Filter className="h-4 w-4" />
+                  Filter by Status
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 p-1 shadow-md border border-slate-100 rounded-lg">
+                <DropdownMenuItem 
+                  onClick={() => setStatusFilter("all")} 
+                  className={`cursor-pointer font-medium py-2 px-3 rounded-md ${statusFilter === "all" ? "bg-theme/10 text-theme" : "text-slate-600 hover:bg-slate-50"}`}
+                >
+                  All
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setStatusFilter("Active")} 
+                  className={`cursor-pointer font-medium py-2 px-3 rounded-md ${statusFilter === "Active" ? "bg-theme/10 text-theme" : "text-slate-600 hover:bg-slate-50"}`}
+                >
+                  Active
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setStatusFilter("Inactive")} 
+                  className={`cursor-pointer font-medium py-2 px-3 rounded-md ${statusFilter === "Inactive" ? "bg-theme/10 text-theme" : "text-slate-600 hover:bg-slate-50"}`}
+                >
+                  Inactive
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardContent>
       </Card>
@@ -741,56 +747,69 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
         <CardContent>
           {/* Mobile Card View */}
           <div className="lg:hidden space-y-3">
-            {vehicles.map((vehicle, index) => (
+            {filteredVehicles.map((vehicle, index) => (
               <motion.div
                 key={vehicle.id}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="p-4 border rounded-lg space-y-3 cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-all"
-                onClick={() => handleVehicleClick(vehicle)}
+                transition={{ delay: Math.min(index * 0.02, 0.2) }}
+                className="p-4 border rounded-lg space-y-3 hover:border-blue-300 hover:bg-blue-50/50 transition-all"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gray-100 rounded-lg">
-                      <Car className="h-5 w-5 text-gray-600" />
+                    <div className="p-2 bg-theme-100 rounded-lg">
+                      <Car className="h-5 w-5 text-theme" />
                     </div>
                     <div>
-                      <p className="font-medium">{vehicle.make} {vehicle.model}</p>
+                      <p className="font-medium text-slate-900">{vehicle.make} {vehicle.model}</p>
                       <p className="text-xs text-gray-500">{vehicle.year} • {vehicle.plate}</p>
                     </div>
                   </div>
-                  <Badge
-                    className={
-                      vehicle.status === "Active" ? "bg-green-100 text-green-700 border-green-200" :
-                      vehicle.status === "Due" ? "bg-orange-100 text-orange-700 border-orange-200" :
-                      "bg-red-100 text-red-700 border-red-200"
-                    }
-                  >
-                    {vehicle.status}
-                  </Badge>
                 </div>
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Owner:</span>
-                    <span className="font-medium">{vehicle.owner}</span>
+                    <span className="text-gray-600 font-medium">Owner:</span>
+                    <span className="font-semibold text-slate-900">{vehicle.owner}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 font-medium">Status:</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newStatus = vehicle.status === "Inactive" ? "Active" : "Inactive";
+                        setStatusChangeTarget({ vehicle, newStatus });
+                      }}
+                      className="focus:outline-none"
+                    >
+                      <Badge
+                        className={
+                          vehicle.status === "Active" ? "bg-red-50 text-red-600 border-red-200 cursor-pointer hover:bg-red-100 transition-colors" :
+                          vehicle.status === "Due" ? "bg-orange-100 text-orange-700 border-orange-200 cursor-pointer hover:bg-orange-200 transition-colors" :
+                          "bg-red-100 text-red-700 border-red-200 cursor-pointer hover:bg-red-200 transition-colors"
+                        }
+                      >
+                        {vehicle.status}
+                      </Badge>
+                    </button>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 font-medium">Total Invoices:</span>
+                    <Badge 
+                      variant="outline" 
+                      className="bg-red-50 text-red-600 border-red-200 hover:bg-red-50 font-medium px-2 py-0.5 rounded-full"
+                    >
+                      {vehicle.totalInvoices} invoices
+                    </Badge>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Mileage:</span>
-                    <span>{vehicle.mileage}</span>
+                    <span className="text-gray-600 font-medium">Total Spent:</span>
+                    <span className="font-semibold text-slate-900">Rs. {vehicle.totalSpent.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Last Service:</span>
-                    <span>{vehicle.lastService}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Next Service:</span>
-                    <span>{vehicle.nextService}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Oil Type:</span>
-                    <span>{vehicle.oilType}</span>
+                    <span className="text-gray-600 font-medium">Last Activity:</span>
+                    <span className="text-slate-600">{vehicle.lastActivity}</span>
                   </div>
                 </div>
               </motion.div>
@@ -805,29 +824,25 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
                 <TableHead>Vehicle</TableHead>
                 <TableHead>Plate Number</TableHead>
                 <TableHead>Owner</TableHead>
-                <TableHead>Mileage</TableHead>
-                <TableHead>Last Service</TableHead>
-                <TableHead>Next Service</TableHead>
-                <TableHead>Oil Type</TableHead>
-                <TableHead>History</TableHead>
+                <TableHead>Total Invoices</TableHead>
+                <TableHead>Total Spent</TableHead>
+                <TableHead>Last Activity</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {vehicles.map((vehicle, index) => (
+              {filteredVehicles.map((vehicle, index) => (
                 <motion.tr
                   key={vehicle.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="border-b cursor-pointer hover:bg-blue-50/50 transition-colors"
-                  onClick={() => handleVehicleClick(vehicle)}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(index * 0.01, 0.1) }}
+                  className="border-b hover:bg-blue-50/50 transition-colors"
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-gray-100 rounded-lg">
-                        <Car className="h-5 w-5 text-gray-600" />
+                      <div className="p-2 bg-theme-100 rounded-lg">
+                        <Car className="h-5 w-5 text-theme" />
                       </div>
                       <div>
                         <p className="font-medium">{vehicle.make} {vehicle.model}</p>
@@ -835,40 +850,40 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="font-medium">{vehicle.plate}</TableCell>
-                  <TableCell>{vehicle.owner}</TableCell>
+                  <TableCell className="font-medium text-slate-900">{vehicle.plate}</TableCell>
+                  <TableCell className="text-slate-600">{vehicle.owner}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Gauge className="h-4 w-4 text-gray-400" />
-                      <span>{vehicle.mileage}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{vehicle.lastService}</TableCell>
-                  <TableCell>{vehicle.nextService}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Droplet className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm">{vehicle.oilType}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{vehicle.serviceHistory} services</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        vehicle.status === "Active" ? "bg-green-100 text-green-700 border-green-200" :
-                        vehicle.status === "Due" ? "bg-orange-100 text-orange-700 border-orange-200" :
-                        "bg-red-100 text-red-700 border-red-200"
-                      }
+                    <Badge 
+                      variant="outline" 
+                      className="bg-red-50 text-red-600 border-red-200 hover:bg-red-50 font-medium px-3 py-1 rounded-full"
                     >
-                      {vehicle.status}
+                      {vehicle.totalInvoices} invoices
                     </Badge>
                   </TableCell>
+                  <TableCell className="font-medium text-slate-900">
+                    Rs. {vehicle.totalSpent.toLocaleString()}
+                  </TableCell>
+                  <TableCell>{vehicle.lastActivity}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-blue-600 border-blue-300">
-                      View Details →
-                    </Badge>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newStatus = vehicle.status === "Inactive" ? "Active" : "Inactive";
+                        setStatusChangeTarget({ vehicle, newStatus });
+                      }}
+                      className="focus:outline-none"
+                    >
+                      <Badge
+                        className={
+                          vehicle.status === "Active" ? "bg-red-50 text-red-600 border-red-200 cursor-pointer hover:bg-red-100 transition-colors" :
+                          vehicle.status === "Due" ? "bg-orange-100 text-orange-700 border-orange-200 cursor-pointer hover:bg-orange-200 transition-colors" :
+                          "bg-red-100 text-red-700 border-red-200 cursor-pointer hover:bg-red-200 transition-colors"
+                        }
+                      >
+                        {vehicle.status}
+                      </Badge>
+                    </button>
                   </TableCell>
                 </motion.tr>
               ))}
@@ -877,6 +892,40 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
           </div>
         </CardContent>
       </Card>
+
+      {/* Status Change Dialog */}
+      <AlertDialog 
+        open={!!statusChangeTarget} 
+        onOpenChange={(open) => !open && setStatusChangeTarget(null)}
+      >
+        <AlertDialogContent className="rounded-xl border border-gray-200 bg-white shadow-lg sm:max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-800">
+              {statusChangeTarget?.newStatus === "Active" ? "Mark as Active?" : "Mark as Inactive?"}
+            </AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-3">
+            <AlertDialogCancel className="border-gray-200">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!statusChangeTarget) return;
+                // In a real app, we would call an API here. 
+                // Since this is a UI update, we'll update the local state for demonstration.
+                setVehicles(prev => prev.map(v => 
+                  v.id === statusChangeTarget.vehicle.id 
+                    ? { ...v, status: statusChangeTarget.newStatus } 
+                    : v
+                ));
+                toast.success(`Vehicle marked as ${statusChangeTarget.newStatus}.`);
+                setStatusChangeTarget(null);
+              }}
+              className="bg-theme hover:bg-theme-dark text-white"
+            >
+              {statusChangeTarget?.newStatus === "Active" ? "Mark as Active" : "Mark as Inactive"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
