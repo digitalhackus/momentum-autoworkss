@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { X, Printer, Share2, Download } from "lucide-react";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface InvoiceData {
   invoiceNumber: string;
@@ -232,6 +233,7 @@ function downloadPDF(container: HTMLElement, filename: string) {
 }
 
 export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewProps) {
+  const { theme } = useTheme();
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
@@ -257,6 +259,12 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
     minute: '2-digit',
     hour12: true 
   });
+
+  const displayName = theme.workshopName || 'MOMENTUM AUTOWORKS';
+  const displayEmail = theme.workshopEmail || 'info@momentumauto.pk';
+  const displayAddress = theme.workshopAddress || 'Soan Gardens, Islamabad';
+  const displayPhone = theme.workshopPhone || '+92 300 1234567';
+  const companyLogo = theme.logoPreview;
 
   return (
     <div 
@@ -318,35 +326,39 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
           <div ref={invoiceRef}>
             {/* Header with Logo and Company Info */}
             <div className="flex items-start gap-4 mb-8 pb-6 border-b border-slate-200">
-              <div className="w-16 h-16 bg-theme rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg
-                  className="w-10 h-10 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                  />
-                </svg>
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={companyLogo ? {} : { backgroundColor: 'var(--primary-color, #c2272d)' }}>
+                {companyLogo ? (
+                  <img src={companyLogo} alt="Company Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <svg
+                    className="w-10 h-10 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                    />
+                  </svg>
+                )}
               </div>
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-slate-900 mb-3">MOMENTUM AUTOWORKS</h1>
+                <h1 className="text-2xl font-bold text-slate-900 mb-3">{displayName.toUpperCase()}</h1>
                 <div className="grid grid-cols-3 gap-8 text-sm">
                   <div>
                     <p className="text-slate-500 font-medium mb-1">Email</p>
-                    <p className="text-slate-700">info@momentumauto.pk</p>
+                    <p className="text-slate-700">{displayEmail}</p>
                   </div>
                   <div>
                     <p className="text-slate-500 font-medium mb-1">Address</p>
-                    <p className="text-slate-700">Soan Gardens, Islamabad, Pakistan</p>
+                    <p className="text-slate-700">{displayAddress}</p>
                   </div>
                   <div>
                     <p className="text-slate-500 font-medium mb-1">Phone</p>
-                    <p className="text-slate-700">+92 300 1234567</p>
+                    <p className="text-slate-700">{displayPhone}</p>
                   </div>
                 </div>
               </div>

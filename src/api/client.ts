@@ -89,6 +89,26 @@ export const api = {
   getVendorPaymentsList: () => request<unknown[]>(`/vendor-payments`),
   createVendorPayment: (body: unknown) => request<unknown>(`/vendor-payments`, { method: 'POST', body: JSON.stringify(body) }),
 
+  // Settings (workshop config persisted in DB)
+  getSettings: () => request<{
+    workshopName: string;
+    workshopPhone: string;
+    workshopEmail: string;
+    workshopAddress: string;
+    logoBase64: string | null;
+    primaryColor: string;
+    taxRates: { cash: number; card: number; online: number };
+  }>(`/settings`),
+  updateSettings: (body: {
+    workshopName?: string;
+    workshopPhone?: string;
+    workshopEmail?: string;
+    workshopAddress?: string;
+    logoBase64?: string | null;
+    primaryColor?: string;
+    taxRates?: { cash: number; card: number; online: number };
+  }) => request<unknown>(`/settings`, { method: 'PATCH', body: JSON.stringify(body) }),
+
   health: () => request<{ ok: boolean }>(`/health`),
 
   // Expenses (Finance)

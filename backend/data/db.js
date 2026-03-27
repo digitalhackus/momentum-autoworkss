@@ -20,6 +20,7 @@ const {
   Utility,
   Employee,
   SalaryRecord,
+  Settings,
 } = require("../models");
 
 function productStatus(stockQuantity) {
@@ -1059,6 +1060,46 @@ async function getDashboardStats() {
   };
 }
 
+// --- Settings (singleton workshop config) ---
+async function getSettings() {
+  let doc = await Settings.findOne({ key: 'workshop' }).lean();
+  if (!doc) {
+    doc = await Settings.create({ key: 'workshop' });
+    doc = doc.toObject();
+  }
+  return {
+    workshopName: doc.workshopName,
+    workshopPhone: doc.workshopPhone,
+    workshopEmail: doc.workshopEmail,
+    workshopAddress: doc.workshopAddress,
+    logoBase64: doc.logoBase64 || null,
+    primaryColor: doc.primaryColor,
+    taxRates: doc.taxRates || { cash: 0, card: 18, online: 18 },
+  };
+}
+
+async function updateSettings(updates) {
+  const allowed = ['workshopName', 'workshopPhone', 'workshopEmail', 'workshopAddress', 'logoBase64', 'primaryColor', 'taxRates'];
+  const setObj = { updated_at: new Date() };
+  for (const key of allowed) {
+    if (updates[key] !== undefined) setObj[key] = updates[key];
+  }
+  const doc = await Settings.findOneAndUpdate(
+    { key: 'workshop' },
+    { $set: setObj },
+    { new: true, upsert: true }
+  ).lean();
+  return {
+    workshopName: doc.workshopName,
+    workshopPhone: doc.workshopPhone,
+    workshopEmail: doc.workshopEmail,
+    workshopAddress: doc.workshopAddress,
+    logoBase64: doc.logoBase64 || null,
+    primaryColor: doc.primaryColor,
+    taxRates: doc.taxRates || { cash: 0, card: 18, online: 18 },
+  };
+}
+
 module.exports = {
   initialize,
   // Invoices
@@ -1137,4 +1178,8 @@ module.exports = {
   getDailyClosePreview,
   closeDailyClose,
   reopenDailyClose,
+  deleteVehicle,
+  // Settings
+  getSettings,
+  updateSettings,
 };

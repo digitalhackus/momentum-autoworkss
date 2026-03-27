@@ -239,6 +239,23 @@ const DailyCloseSchema = new mongoose.Schema({
   closedBy: { type: String, default: "Admin" },
 });
 
+// Settings (singleton document for workshop config)
+const SettingsSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true, default: 'workshop' },
+  workshopName: { type: String, default: 'Momentum AutoWorks' },
+  workshopPhone: { type: String, default: '+92 300 1234567' },
+  workshopEmail: { type: String, default: 'info@momentumauto.com' },
+  workshopAddress: { type: String, default: '123 Workshop Street, Islamabad' },
+  logoBase64: { type: String, default: null },
+  primaryColor: { type: String, default: '#c2272d' },
+  taxRates: {
+    cash: { type: Number, default: 0 },
+    card: { type: Number, default: 18 },
+    online: { type: Number, default: 18 },
+  },
+  updated_at: { type: Date, default: Date.now },
+});
+
 // Index for vehicle lookups
 VehicleSchema.index({ customerId: 1, id: 1 });
 
@@ -257,6 +274,7 @@ const Utility = mongoose.model("Utility", UtilitySchema);
 const Employee = mongoose.model("Employee", EmployeeSchema);
 const SalaryRecord = mongoose.model("SalaryRecord", SalaryRecordSchema);
 const DailyClose = mongoose.model("DailyClose", DailyCloseSchema);
+const Settings = mongoose.model("Settings", SettingsSchema);
 
 module.exports = {
   Invoice,
@@ -273,5 +291,6 @@ module.exports = {
   Utility,
   Employee,
   SalaryRecord,
-  DailyClose
+  DailyClose,
+  Settings
 };

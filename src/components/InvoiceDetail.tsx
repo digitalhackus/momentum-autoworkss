@@ -3,6 +3,7 @@ import { useData } from "../contexts/DataContext";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { InvoiceTemplate } from "./InvoiceTemplate";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   Dialog,
   DialogContent,
@@ -242,6 +243,7 @@ function downloadPDF(container: HTMLElement, filename: string) {
 export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) {
   const { updateInvoice } = useData();
   const [showInvoicePreview, setShowInvoicePreview] = useState(true);
+  const { theme } = useTheme();
   const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -389,6 +391,11 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
                   taxPercentage={invoice.taxPercentage}
                   grandTotal={invoice.amount}
                   paymentStatus={invoice.status === 'Paid' ? 'Paid' : 'Unpaid'}
+                  companyName={theme.workshopName}
+                  companyEmail={theme.workshopEmail}
+                  companyAddress={theme.workshopAddress}
+                  companyPhone={theme.workshopPhone}
+                  companyLogo={theme.logoPreview}
                 />
               </div>
             </div>
