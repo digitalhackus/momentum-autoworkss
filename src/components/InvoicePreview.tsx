@@ -1,8 +1,15 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
-import { X, Printer, Share2, Download } from "lucide-react";
+import { X, Printer, Share2, Download, Menu } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 interface InvoiceData {
   invoiceNumber: string;
@@ -235,6 +242,7 @@ function downloadPDF(container: HTMLElement, filename: string) {
 export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewProps) {
   const { theme } = useTheme();
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -251,8 +259,6 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
   const handleShare = () => {
     alert("Share functionality - Integration pending");
   };
-
-  const subtotalWithoutTax = invoiceData.subtotal;
 
   const currentTime = new Date().toLocaleTimeString('en-US', { 
     hour: '2-digit', 
@@ -277,15 +283,75 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
     >
       <div className="w-full max-w-4xl" onClick={e => e.stopPropagation()}>
         {/* Action Bar */}
-        <div className="bg-white rounded-t-lg px-6 py-3.5 border-b border-slate-200 sticky top-4 z-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Invoice Details</h2>
-            <div className="flex items-center gap-2">
+        <div className="bg-white rounded-t-lg px-4 sm:px-6 py-3.5 border-b border-slate-200 sticky top-4 z-10">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-base sm:text-lg font-semibold text-slate-900">Invoice Details</h2>
+            {/* Mobile: hamburger menu */}
+            <div className="flex items-center justify-end sm:hidden">
+              <DropdownMenu open={actionsOpen} onOpenChange={setActionsOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 w-9 p-0 text-theme border-theme-200 hover:bg-theme-50"
+                    aria-label="Invoice actions"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setActionsOpen(false);
+                      handlePrint();
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setActionsOpen(false);
+                      handleDownloadPDF();
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setActionsOpen(false);
+                      handleShare();
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setActionsOpen(false);
+                      onClose();
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Close
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Desktop/tablet: full actions row */}
+            <div className="hidden sm:flex flex-wrap items-center justify-end gap-2">
               <Button
                 size="sm"
+                className="h-9 text-xs sm:text-sm w-full xs:w-auto text-theme border-theme-200 hover:bg-theme-50 transition-colors"
                 variant="outline"
                 onClick={handlePrint}
-                className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
               >
                 <Printer className="h-4 w-4 mr-2" />
                 Print
@@ -294,7 +360,7 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                 size="sm"
                 variant="outline"
                 onClick={handleDownloadPDF}
-                className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+                className="h-9 text-xs sm:text-sm w-full xs:w-auto text-theme border-theme-200 hover:bg-theme-50 transition-colors"
               >
                 <Download className="h-4 w-4 mr-2" />
                 PDF
@@ -303,7 +369,7 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                 size="sm"
                 variant="outline"
                 onClick={handleShare}
-                className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+                className="h-9 text-xs sm:text-sm w-full xs:w-auto text-theme border-theme-200 hover:bg-theme-50 transition-colors"
               >
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
@@ -312,7 +378,7 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                 size="sm"
                 variant="outline"
                 onClick={onClose}
-                className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+                className="h-9 text-xs sm:text-sm w-full xs:w-auto text-theme border-theme-200 hover:bg-theme-50 transition-colors"
               >
                 <X className="h-4 w-4 mr-2" />
                 Close
@@ -322,10 +388,10 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
         </div>
 
         {/* Invoice Content */}
-        <Card className="p-12 bg-white rounded-b-lg">
+        <Card className="p-4 sm:p-8 md:p-12 bg-white rounded-b-lg">
           <div ref={invoiceRef}>
             {/* Header with Logo and Company Info */}
-            <div className="flex items-start gap-4 mb-8 pb-6 border-b border-slate-200">
+            <div className="flex flex-col sm:flex-row items-start gap-4 mb-8 pb-6 border-b border-slate-200">
               <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={companyLogo ? {} : { backgroundColor: 'var(--primary-color, #c2272d)' }}>
                 {companyLogo ? (
                   <img src={companyLogo} alt="Company Logo" className="w-full h-full object-contain" />
@@ -346,19 +412,19 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                 )}
               </div>
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-slate-900 mb-3">{displayName.toUpperCase()}</h1>
-                <div className="grid grid-cols-3 gap-8 text-sm">
-                  <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-3 break-words">{displayName.toUpperCase()}</h1>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 text-sm">
+                  <div className="break-words">
                     <p className="text-slate-500 font-medium mb-1">Email</p>
-                    <p className="text-slate-700">{displayEmail}</p>
+                    <p className="text-slate-700 break-words">{displayEmail}</p>
                   </div>
-                  <div>
+                  <div className="break-words">
                     <p className="text-slate-500 font-medium mb-1">Address</p>
-                    <p className="text-slate-700">{displayAddress}</p>
+                    <p className="text-slate-700 break-words">{displayAddress}</p>
                   </div>
-                  <div>
+                  <div className="break-words">
                     <p className="text-slate-500 font-medium mb-1">Phone</p>
-                    <p className="text-slate-700">{displayPhone}</p>
+                    <p className="text-slate-700 whitespace-nowrap sm:whitespace-normal break-words">{displayPhone}</p>
                   </div>
                 </div>
               </div>
@@ -369,45 +435,45 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
               <h2 className="text-4xl font-bold text-theme">INVOICE</h2>
             </div>
 
-            {/* Customer & Invoice Details - Two Columns */}
-            <div className="grid grid-cols-2 gap-12 mb-10">
+            {/* Customer & Invoice Details - Responsive Columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 mb-10">
               {/* Left Column - Customer Details */}
               <div className="space-y-3">
-                <div className="grid grid-cols-[140px_1fr] gap-2">
+                <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
                   <span className="text-sm font-semibold text-slate-700">Customer Name:</span>
                   <span className="text-sm text-slate-900">{invoiceData.customerName}</span>
                 </div>
-                <div className="grid grid-cols-[140px_1fr] gap-2">
+                <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
                   <span className="text-sm font-semibold text-slate-700">Phone Number:</span>
                   <span className="text-sm text-slate-900">{invoiceData.customerPhone}</span>
                 </div>
-                <div className="grid grid-cols-[140px_1fr] gap-2">
+                <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
                   <span className="text-sm font-semibold text-slate-700">Model:</span>
                   <span className="text-sm text-slate-900">
                     {invoiceData.vehicleMake} {invoiceData.vehicleModel} {invoiceData.vehicleYear || ''}
                   </span>
                 </div>
-                <div className="grid grid-cols-[140px_1fr] gap-2">
+                <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
                   <span className="text-sm font-semibold text-slate-700">Registration Number:</span>
                   <span className="text-sm text-slate-900">{invoiceData.vehicleNumber}</span>
                 </div>
-                <div className="grid grid-cols-[140px_1fr] gap-2">
+                <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
                   <span className="text-sm font-semibold text-slate-700">Payment Method:</span>
                   <span className="text-sm text-slate-900">{invoiceData.paymentMethod || 'CARD/POS'}</span>
                 </div>
               </div>
 
               {/* Right Column - Invoice Details */}
-              <div className="space-y-3 text-right">
-                <div className="grid grid-cols-[1fr_140px] gap-2">
+              <div className="space-y-3 text-left md:text-right">
+                <div className="grid grid-cols-[1fr_110px] sm:grid-cols-[1fr_140px] gap-2">
                   <span className="text-sm font-semibold text-slate-700">Invoice No:</span>
                   <span className="text-sm text-slate-900">{invoiceData.invoiceNumber}</span>
                 </div>
-                <div className="grid grid-cols-[1fr_140px] gap-2">
+                <div className="grid grid-cols-[1fr_110px] sm:grid-cols-[1fr_140px] gap-2">
                   <span className="text-sm font-semibold text-slate-700">Invoice Date:</span>
                   <span className="text-sm text-slate-900">{invoiceData.invoiceDate}</span>
                 </div>
-                <div className="grid grid-cols-[1fr_140px] gap-2">
+                <div className="grid grid-cols-[1fr_110px] sm:grid-cols-[1fr_140px] gap-2">
                   <span className="text-sm font-semibold text-slate-700">Time:</span>
                   <span className="text-sm text-slate-900">{currentTime}</span>
                 </div>
@@ -423,19 +489,19 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-200">
-                      <th className="text-left text-sm font-semibold text-slate-600 pb-3 px-4">Description</th>
-                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-24">Quantity</th>
-                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Price</th>
-                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Amount</th>
+                      <th className="text-left text-sm font-semibold text-slate-600 pb-3 pl-3 pr-2 sm:px-4">Description</th>
+                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-2 sm:px-4 w-20 sm:w-24">Qty</th>
+                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-2 sm:px-4 w-24 sm:w-32">Price</th>
+                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 pl-2 pr-2 sm:px-4 w-24 sm:w-32">Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {invoiceData.services.map((service, index) => (
                       <tr key={service.id} className={index !== invoiceData.services.length - 1 ? "border-b border-slate-100" : ""}>
-                        <td className="text-sm text-slate-700 py-3 px-4">{service.name}</td>
-                        <td className="text-sm text-slate-700 py-3 px-4 text-right">{service.quantity}</td>
-                        <td className="text-sm text-slate-700 py-3 px-4 text-right">₨{service.price.toLocaleString()}</td>
-                        <td className="text-sm font-medium text-slate-900 py-3 px-4 text-right">
+                        <td className="text-sm text-slate-700 py-3 pl-3 pr-2 sm:px-4 break-words">{service.name}</td>
+                        <td className="text-sm text-slate-700 py-3 px-2 sm:px-4 text-right">{service.quantity}</td>
+                        <td className="text-sm text-slate-700 py-3 px-2 sm:px-4 text-right">₨{service.price.toLocaleString()}</td>
+                        <td className="text-sm font-medium text-slate-900 py-3 pl-2 pr-2 sm:px-4 text-right">
                           ₨{service.amount.toLocaleString()}
                         </td>
                       </tr>
@@ -454,28 +520,28 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-200">
-                      <th className="text-left text-sm font-semibold text-slate-600 pb-3 px-4">Description</th>
-                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-24">Quantity</th>
-                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Price</th>
-                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Amount</th>
+                      <th className="text-left text-sm font-semibold text-slate-600 pb-3 pl-3 pr-2 sm:px-4">Description</th>
+                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-2 sm:px-4 w-20 sm:w-24">Qty</th>
+                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-2 sm:px-4 w-24 sm:w-32">Price</th>
+                      <th className="text-right text-sm font-semibold text-slate-600 pb-3 pl-2 pr-2 sm:px-4 w-24 sm:w-32">Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {invoiceData.products.map((product, index) => (
                       <tr key={product.id} className={index !== invoiceData.products.length - 1 ? "border-b border-slate-100" : ""}>
-                        <td className="text-sm text-slate-700 py-3 px-4">
+                        <td className="text-sm text-slate-700 py-3 pl-3 pr-2 sm:px-4 break-words">
                           {product.name}
                           {product.customerSupplied && (
                             <span className="ml-2 text-xs text-slate-500 italic">(Customer Supplied)</span>
                           )}
                         </td>
-                        <td className="text-sm text-slate-700 py-3 px-4 text-right">
+                        <td className="text-sm text-slate-700 py-3 px-2 sm:px-4 text-right">
                           {product.customerSupplied ? '-' : product.quantity}
                         </td>
-                        <td className="text-sm text-slate-700 py-3 px-4 text-right">
+                        <td className="text-sm text-slate-700 py-3 px-2 sm:px-4 text-right">
                           {product.customerSupplied ? '-' : `₨${product.price.toLocaleString()}`}
                         </td>
-                        <td className="text-sm font-medium text-slate-900 py-3 px-4 text-right">
+                        <td className="text-sm font-medium text-slate-900 py-3 pl-2 pr-2 sm:px-4 text-right">
                           {product.customerSupplied ? '₨0' : `₨${product.amount.toLocaleString()}`}
                         </td>
                       </tr>
@@ -487,15 +553,11 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
 
             {/* Totals Section */}
             <div className="flex justify-end mt-8">
-              <div className="w-96">
+              <div className="w-full md:w-96">
                 <div className="space-y-3 mb-4 pb-4 border-b-2 border-slate-200">
                   <div className="flex justify-between items-center">
                     <span className="text-base text-slate-700">Subtotal</span>
                     <span className="text-base font-semibold text-slate-900">₨{invoiceData.subtotal.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-base text-slate-700">Subtotal without Tax</span>
-                    <span className="text-base font-semibold text-slate-900">₨{subtotalWithoutTax.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-base text-slate-700">Tax</span>

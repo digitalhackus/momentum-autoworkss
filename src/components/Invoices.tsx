@@ -30,6 +30,7 @@ import {
   Eye,
   Calendar,
   User,
+  X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { formatDisplayDate } from "../utils/dateFormat";
@@ -40,11 +41,13 @@ interface InvoicesProps {
   showCreateInvoice?: boolean;
   setShowCreateInvoice?: (show: boolean) => void;
   filterCustomerId?: string | null;
+  filterVehiclePlate?: string | null;
   onClearCustomerFilter?: () => void;
-  onNavigate?: (page: string, options?: { customerId?: string }) => void;
+  onClearVehicleFilter?: () => void;
+  onNavigate?: (page: string, options?: { customerId?: string, vehiclePlate?: string }) => void;
 }
 
-export function Invoices({ startWithCreate = false, showCreateInvoice: externalShowCreate, setShowCreateInvoice: externalSetShowCreate, filterCustomerId, onClearCustomerFilter, onNavigate }: InvoicesProps = {}) {
+export function Invoices({ startWithCreate = false, showCreateInvoice: externalShowCreate, setShowCreateInvoice: externalSetShowCreate, filterCustomerId, filterVehiclePlate, onClearCustomerFilter, onClearVehicleFilter, onNavigate }: InvoicesProps = {}) {
   const { invoices, customers, refetch, updateInvoice } = useData();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "Paid" | "Unpaid">("all");
@@ -70,7 +73,11 @@ export function Invoices({ startWithCreate = false, showCreateInvoice: externalS
     ? invoices.filter((inv) => inv.customerId === filterCustomerId)
     : invoices;
 
-  const filteredInvoices = customerFilteredInvoices.filter((invoice) => {
+  const vehicleFilteredInvoices = filterVehiclePlate
+    ? customerFilteredInvoices.filter((inv) => inv.plate === filterVehiclePlate)
+    : customerFilteredInvoices;
+
+  const filteredInvoices = vehicleFilteredInvoices.filter((invoice) => {
     const matchesSearch =
       invoice.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
       invoice.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -89,6 +96,8 @@ export function Invoices({ startWithCreate = false, showCreateInvoice: externalS
   const filterCustomerName = filterCustomerId
     ? customers?.find((c) => c.id === filterCustomerId)?.name ?? null
     : null;
+
+  const filterVehicleLabel = filterVehiclePlate ? `Vehicle: ${filterVehiclePlate}` : null;
 
   const handleInvoiceClick = (invoice: typeof invoices[0]) => {
     setSelectedInvoice(invoice);
@@ -158,14 +167,28 @@ export function Invoices({ startWithCreate = false, showCreateInvoice: externalS
       {/* Header */}
       {filterCustomerId && filterCustomerName ? (
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-theme-100 p-2 rounded-lg">
-              <User className="h-5 w-5 text-theme" />
-            </div>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-1 lg:mb-2">{filterCustomerName}</h1>
-              <p className="text-sm lg:text-base text-gray-600">All the Invoices of the user in the system.</p>
-            </div>
+          <div className="flex items-center gap-2 bg-theme-50 text-theme px-4 py-2 rounded-lg w-fit">
+            <span className="font-medium">Customer:</span>
+            <span>{filterCustomerName}</span>
+            <button
+              onClick={onClearCustomerFilter}
+              className="ml-2 hover:bg-theme-100 p-1 rounded-full transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      ) : filterVehiclePlate ? (
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center gap-2 bg-theme-50 text-theme px-4 py-2 rounded-lg w-fit">
+            <span className="font-medium">Vehicle:</span>
+            <span>{filterVehiclePlate}</span>
+            <button
+              onClick={onClearVehicleFilter}
+              className="ml-2 hover:bg-theme-100 p-1 rounded-full transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
       ) : (
@@ -403,7 +426,7 @@ export function Invoices({ startWithCreate = false, showCreateInvoice: externalS
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium">INV-{invoice.id}</p>
-                    {!filterCustomerId && <p className="text-sm text-gray-600">{invoice.customer}</p>}
+                    {(!filterCustomerId && !filterVehiclePlate) && <p className="text-sm text-gray-600">{invoice.customer}</p>}
                   </div>
                   {invoice.status === "Paid" ? (
                     <Badge className="bg-green-100 text-green-700 border-green-200">
@@ -450,7 +473,7 @@ export function Invoices({ startWithCreate = false, showCreateInvoice: externalS
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice ID</TableHead>
-                {!filterCustomerId && <TableHead>Customer</TableHead>}
+                {(!filterCustomerId && !filterVehiclePlate) && <TableHead>Customer</TableHead>}
                 <TableHead>Vehicle</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Items</TableHead>
@@ -473,7 +496,7 @@ export function Invoices({ startWithCreate = false, showCreateInvoice: externalS
                   className="border-b"
                 >
                   <TableCell className="font-medium">INV-{invoice.id}</TableCell>
-                  {!filterCustomerId && <TableCell>{invoice.customer}</TableCell>}
+                  {(!filterCustomerId && !filterVehiclePlate) && <TableCell>{invoice.customer}</TableCell>}
                   <TableCell className="align-top">
                     <div className="flex flex-col">
                       <span className="font-medium">{vehicleLine1}</span>

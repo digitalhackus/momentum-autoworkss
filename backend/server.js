@@ -18,8 +18,7 @@ const employeesRouter = require("./routes/employees");
 const salariesRouter = require("./routes/salaries");
 const dailyCloseRouter = require("./routes/dailyClose");
 const settingsRouter = require("./routes/settings");
-
-
+const vehiclesRouter = require("./routes/vehicles");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -63,6 +62,7 @@ app.use("/api/employees", employeesRouter);
 app.use("/api/salaries", salariesRouter);
 app.use("/api/daily-close", dailyCloseRouter);
 app.use("/api/settings", settingsRouter);
+app.use("/api/vehicles", vehiclesRouter);
 
 // MongoDB Connection and persistence — server starts only after DB is ready
 const db = require("./data/db");

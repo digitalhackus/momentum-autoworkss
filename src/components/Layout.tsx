@@ -45,10 +45,12 @@ import { GlobalSearch } from "./GlobalSearch";
 interface LayoutProps {
   children: React.ReactNode;
   currentPage: string;
-  onNavigate: (page: string, options?: { customerId?: string }) => void;
+  onNavigate: (page: string, options?: { customerId?: string, vehiclePlate?: string }) => void;
   onLogout: () => void;
   isCreatingInvoice?: boolean;
   onBackFromInvoice?: () => void;
+  canGoBack?: boolean;
+  onGoBack?: () => void;
 }
 
 const menuItems = [
@@ -78,7 +80,7 @@ const bottomMenuItems = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
-export function Layout({ children, currentPage, onNavigate, onLogout, isCreatingInvoice, onBackFromInvoice }: LayoutProps) {
+export function Layout({ children, currentPage, onNavigate, onLogout, isCreatingInvoice, onBackFromInvoice, canGoBack, onGoBack }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [inventoryExpanded, setInventoryExpanded] = useState(
@@ -253,6 +255,11 @@ export function Layout({ children, currentPage, onNavigate, onLogout, isCreating
               </div>
             ) : (
               <div className="flex lg:hidden items-center gap-2">
+                {canGoBack && onGoBack && (
+                  <Button variant="ghost" size="icon" className="lg:hidden" onClick={onGoBack} aria-label="Go back">
+                    <ChevronLeft className="h-6 w-6" />
+                  </Button>
+                )}
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="lg:hidden">

@@ -96,6 +96,7 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
   // Auto-save status
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
@@ -652,6 +653,7 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
     // Auto-save states
     setLastSaved(null);
     setIsSaving(false);
+    setIsSubmitting(false);
     setHasUnsavedChanges(false);
     setShowSaveSuccess(false);
     
@@ -1477,9 +1479,9 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
       </div>
 
       {/* Footer Actions */}
-      <div className="px-6 py-4 border-t bg-white shrink-0">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="px-4 sm:px-6 py-4 border-t bg-white shrink-0">
+        <div className="max-w-7xl mx-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 min-w-0">
             {/* Save Status Indicators */}
             {hasUnsavedChanges && !isSaving && !showSaveSuccess && (
               <span className="flex items-center gap-2 text-orange-600 text-sm">
@@ -1501,7 +1503,7 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
             )}
             
             {/* Form Validation Status */}
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-slate-500 min-w-0">
               {isFormValid ? (
                 <span className="flex items-center gap-2 text-green-600">
                   <CheckCircle2 className="h-4 w-4" />
@@ -1515,7 +1517,7 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
             <Button 
               variant="outline" 
               onClick={() => {
@@ -1541,9 +1543,11 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
             </Button>
             <Button 
               type="button"
-              className="bg-theme hover:bg-theme-dark"
-              disabled={!isFormValid}
+              className="bg-theme hover:bg-theme-dark relative"
+              disabled={!isFormValid || isSubmitting}
               onClick={async () => {
+                if (isSubmitting) return;
+                setIsSubmitting(true);
                 // Prepare invoice items
                 const invoiceItems = [
                   ...selectedServices.map((service) => ({
@@ -1612,6 +1616,7 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
                     } catch (err) {
                       console.error("Create customer/vehicle failed:", err);
                       toast.error("Could not create customer. Please try again.");
+                      setIsSubmitting(false);
                       return;
                     }
                   }
@@ -1684,11 +1689,22 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
                   console.error("Save invoice failed:", err);
                   toast.error("Could not save invoice. You can still use Preview to view or print.");
                   setShowInvoicePreview(true);
+                } finally {
+                  setIsSubmitting(false);
                 }
               }}
             >
-              <Save className="h-4 w-4 mr-2" />
-              {editInvoice ? "Update Invoice" : (isCustomerLocked ? "Save Invoice" : "Generate Invoice")}
+              {isSubmitting ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  {editInvoice ? "Update Invoice" : (isCustomerLocked ? "Save Invoice" : "Generate Invoice")}
+                </>
+              )}
             </Button>
           </div>
         </div>

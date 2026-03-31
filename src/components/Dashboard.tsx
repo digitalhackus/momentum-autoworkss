@@ -109,16 +109,6 @@ export function Dashboard({ onNavigate, setShowCreateInvoice }: DashboardProps =
           <Button 
             className="bg-theme hover:bg-theme-dark flex-1 lg:flex-none" 
             size="sm"
-            onClick={() => onNavigate && onNavigate("job-cards")}
-          >
-            <Wrench className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">New Job Card</span>
-            <span className="sm:hidden">New Job</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1 lg:flex-none" 
-            size="sm"
             type="button"
             onClick={() => {
               setShowCreateInvoice?.(true);

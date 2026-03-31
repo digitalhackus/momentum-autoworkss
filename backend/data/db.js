@@ -290,6 +290,11 @@ async function getVehiclesByCustomerId(customerId) {
   return list.map((doc) => ({ ...doc, id: doc.id }));
 }
 
+async function getVehicles() {
+  const list = await Vehicle.find().lean();
+  return list.map((doc) => ({ ...doc, id: doc.id }));
+}
+
 async function addVehicle(customerId, { carMake, carModel, carYear, vehicleNumber }) {
   const customer = await Customer.findOne({ id: customerId });
   if (!customer) return null;
@@ -1115,6 +1120,7 @@ module.exports = {
   updateCustomer,
   deleteCustomer,
   getVehiclesByCustomerId,
+  getVehicles,
   addVehicle,
   updateVehicle,
   // Products

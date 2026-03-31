@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useData } from "../contexts/DataContext";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -125,41 +125,59 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
     const loadAllVehicles = async () => {
       setVehiclesLoading(true);
       try {
-        const results = await Promise.all(
-          customers.map(async (c) => {
-            const list = await getCustomerVehicles(c.id);
-            return list.map((v) => {
-              const vehicleInvoices = invoices.filter(
-                (inv) => inv.plate === v.vehicleNumber
-              );
-              const paidInvoices = vehicleInvoices.filter(
-                (inv) => inv.status === "Paid"
-              );
-              const totalSpent = paidInvoices.reduce(
-                (sum, inv) => sum + (Number(inv.amount) || 0),
-                0
-              );
-              const lastInvoice = vehicleInvoices.sort(
+        const customerList = customers ?? [];
+        if (customerList.length === 0) {
+          setVehicles([]);
+          return;
+        }
+
+        // Fetch vehicles per customer with a small concurrency limit (avoids hammering the backend)
+        const concurrency = 6;
+        const results: DisplayVehicle[] = [];
+        const seen = new Set<string>(); // dedupe by normalized plate across customers
+
+        for (let i = 0; i < customerList.length; i += concurrency) {
+          const slice = customerList.slice(i, i + concurrency);
+          const settled = await Promise.allSettled(slice.map((c) => getCustomerVehicles(c.id)));
+
+          settled.forEach((s, idx) => {
+            const customer = slice[idx];
+            const ownerName = customer?.name || "Unknown";
+
+            if (s.status !== "fulfilled") return;
+            const list = s.value || [];
+
+            list.forEach((v) => {
+              const plate = v.vehicleNumber || "";
+              const key = plate.replace(/[\s-]/g, "").toUpperCase();
+              if (!key || seen.has(key)) return;
+              seen.add(key);
+
+              const vehicleInvoices = invoices.filter((inv) => inv.plate === plate);
+              const paidInvoices = vehicleInvoices.filter((inv) => inv.status === "Paid");
+              const totalSpent = paidInvoices.reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+              const lastInvoice = [...vehicleInvoices].sort(
                 (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
               )[0];
 
-              return {
+              results.push({
                 id: v.id,
                 make: v.carMake || "",
                 model: v.carModel || "",
                 year: v.carYear || "",
-                plate: v.vehicleNumber || "",
-                owner: c.name,
-                ownerId: c.id,
+                plate,
+                owner: ownerName,
+                ownerId: v.customerId,
                 totalInvoices: vehicleInvoices.length,
-                totalSpent: totalSpent,
+                totalSpent,
                 lastActivity: lastInvoice ? lastInvoice.date : "No activity",
                 status: "Active",
-              };
+              });
             });
-          })
-        );
-        setVehicles(results.flat());
+          });
+        }
+
+        setVehicles(results);
       } catch (error) {
         console.error("Failed to load vehicles:", error);
         toast.error("Could not load vehicle registry.");
@@ -796,12 +814,21 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 font-medium">Total Invoices:</span>
-                    <Badge 
-                      variant="outline" 
-                      className="bg-red-50 text-red-600 border-red-200 hover:bg-red-50 font-medium px-2 py-0.5 rounded-full"
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigate?.("invoices", { vehiclePlate: vehicle.plate });
+                      }}
+                      className="focus:outline-none"
                     >
-                      {vehicle.totalInvoices} invoices
-                    </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 font-medium px-2 py-0.5 rounded-full cursor-pointer transition-colors"
+                      >
+                        {vehicle.totalInvoices} invoices
+                      </Badge>
+                    </button>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 font-medium">Total Spent:</span>
@@ -853,12 +880,18 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
                   <TableCell className="font-medium text-slate-900">{vehicle.plate}</TableCell>
                   <TableCell className="text-slate-600">{vehicle.owner}</TableCell>
                   <TableCell>
-                    <Badge 
-                      variant="outline" 
-                      className="bg-red-50 text-red-600 border-red-200 hover:bg-red-50 font-medium px-3 py-1 rounded-full"
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigate?.("invoices", { vehiclePlate: vehicle.plate });
+                      }}
+                      className="focus:outline-none"
                     >
-                      {vehicle.totalInvoices} invoices
-                    </Badge>
+                      <Badge variant="outline" className="bg-theme-50 text-theme border-theme-200 font-medium cursor-pointer hover:bg-theme-100 transition-colors">
+                        {vehicle.totalInvoices} Invoices
+                      </Badge>
+                    </button>
                   </TableCell>
                   <TableCell className="font-medium text-slate-900">
                     Rs. {vehicle.totalSpent.toLocaleString()}

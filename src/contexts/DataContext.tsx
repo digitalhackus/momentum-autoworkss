@@ -432,10 +432,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const getCustomerById = (id: string) => customers.find((c) => c.id === id);
 
-  const getCustomerVehicles = async (customerId: string) => {
+  const getCustomerVehicles = useCallback(async (customerId: string) => {
     const list = (await api.getCustomerVehicles(customerId)) as CustomerVehicle[];
     return list || [];
-  };
+  }, []);
 
   const addVehicle = async (
     customerId: string,

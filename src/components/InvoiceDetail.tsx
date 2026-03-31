@@ -5,6 +5,13 @@ import { Badge } from "./ui/badge";
 import { InvoiceTemplate } from "./InvoiceTemplate";
 import { useTheme } from "../contexts/ThemeContext";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -21,6 +28,7 @@ import {
   Share2,
   CheckCircle2,
   Loader2,
+  Menu,
 } from "lucide-react";
 
 interface InvoiceDetailProps {
@@ -69,9 +77,9 @@ function getInvoiceHTML(container: HTMLElement): string {
   :root { --primary-color: ${themeColor}; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; background: white; padding: 40px; }
-  @page { margin: 1cm; size: A4 portrait; }
+  @page { margin: 10mm; size: A4 portrait; }
   table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
-  tr { page-break-inside: avoid; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
   thead { display: table-header-group; }
   .bg-theme { background-color: var(--primary-color); }
   .text-theme { color: var(--primary-color); }
@@ -187,9 +195,9 @@ function downloadPDF(container: HTMLElement, filename: string) {
             margin: [10, 10, 10, 10],
             filename: '${filename.replace(/'/g, "\\'")}',
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+            html2canvas: { scale: 2, windowWidth: 900, useCORS: true, logging: false, backgroundColor: '#ffffff' },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            pagebreak: { mode: ['css', 'legacy'] }
           }).from(document.body).save().then(function() {
             window.parent.postMessage({ type: 'pdf-done' }, '*');
           }).catch(function(err) {
@@ -247,6 +255,7 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
   const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
   
   const isEditable = invoice.status !== 'Paid';
 
@@ -306,9 +315,106 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
         >
           <div className="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-white">
-              <h2 className="text-xl font-bold text-slate-900">Invoice Details</h2>
-              <div className="flex items-center gap-2">
+            <div className="px-4 sm:px-6 py-4 border-b border-slate-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white">
+              <h2 className="text-base sm:text-xl font-bold text-slate-900">Invoice Details</h2>
+
+              {/* Mobile: hamburger menu for actions */}
+              <div className="flex items-center justify-end sm:hidden">
+                <DropdownMenu open={actionsOpen} onOpenChange={setActionsOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 w-9 p-0 text-theme border-theme-200 hover:bg-theme-50"
+                      aria-label="Invoice actions"
+                    >
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setActionsOpen(false);
+                        handlePrint();
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setActionsOpen(false);
+                        handleDownloadPDF();
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setActionsOpen(false);
+                        handleShare();
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setActionsOpen(false);
+                        handleEmail();
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email
+                    </DropdownMenuItem>
+                    {(isEditable || onEdit || onClose) && <DropdownMenuSeparator />}
+                    {isEditable && (
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          setActionsOpen(false);
+                          setShowPayConfirm(true);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Mark as Paid
+                      </DropdownMenuItem>
+                    )}
+                    {isEditable && onEdit && (
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          setActionsOpen(false);
+                          onEdit();
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {onClose && (
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          setActionsOpen(false);
+                          onClose();
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Close
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Desktop/tablet: full actions row */}
+              <div className="hidden sm:flex items-center gap-2">
                 <Button
                   onClick={handlePrint}
                   variant="outline"
@@ -326,6 +432,15 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
                 >
                   <Download className="h-4 w-4 mr-2" />
                   PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleEmail}
+                  size="sm"
+                  className="h-9 text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email
                 </Button>
                 <Button
                   variant="outline"

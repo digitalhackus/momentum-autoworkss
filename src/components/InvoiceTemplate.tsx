@@ -62,9 +62,6 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   const services = items.filter(item => item.type === 'service');
   const products = items.filter(item => item.type === 'product');
   
-  // Calculate subtotal without tax
-  const subtotalWithoutTax = subtotal;
-
   const displayName = companyName || 'MOMENTUM AUTOWORKS';
   const displayEmail = companyEmail || 'info@momentumauto.pk';
   const displayAddress = companyAddress || 'Soan Gardens, Islamabad';
@@ -73,7 +70,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   return (
     <div className="bg-white p-12 max-w-4xl mx-auto print:max-w-full print:mx-0 print:px-8 print:py-6 invoice-print">
       {/* Header with Logo and Company Info */}
-      <div className="flex items-start gap-4 mb-8 pb-6 border-b border-slate-200 print-keep-together">
+      <div className="flex flex-col sm:flex-row items-start gap-4 mb-8 pb-6 border-b border-slate-200 print-keep-together">
         <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={companyLogo ? {} : { backgroundColor: 'var(--primary-color, #c2272d)' }}>
           {companyLogo ? (
             <img src={companyLogo} alt="Company Logo" className="w-full h-full object-contain" />
@@ -94,19 +91,19 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           )}
         </div>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-slate-900 mb-3">{displayName.toUpperCase()}</h1>
-          <div className="grid grid-cols-3 gap-x-8 text-sm">
-            <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-3 break-words">{displayName.toUpperCase()}</h1>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-x-8 text-sm">
+            <div className="break-words">
               <p className="text-slate-500 font-medium mb-1">Email</p>
               <p className="text-slate-700">{displayEmail}</p>
             </div>
-            <div>
+            <div className="break-words">
               <p className="text-slate-500 font-medium mb-1">Address</p>
-              <p className="text-slate-700 whitespace-nowrap">{displayAddress}</p>
+              <p className="text-slate-700 break-words">{displayAddress}</p>
             </div>
-            <div>
+            <div className="break-words">
               <p className="text-slate-500 font-medium mb-1">Phone</p>
-              <p className="text-slate-700">{displayPhone}</p>
+              <p className="text-slate-700 whitespace-nowrap sm:whitespace-normal break-words">{displayPhone}</p>
             </div>
           </div>
         </div>
@@ -117,43 +114,43 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
         <h2 className="text-4xl font-bold text-theme">INVOICE</h2>
       </div>
 
-      {/* Customer & Invoice Details - Two Columns */}
-      <div className="grid grid-cols-2 gap-12 mb-10 print-keep-together">
+      {/* Customer & Invoice Details - Responsive Columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 mb-10 print-keep-together">
         {/* Left Column - Customer Details */}
         <div className="space-y-3">
-          <div className="grid grid-cols-[140px_1fr] gap-2">
+          <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
             <span className="text-sm font-semibold text-slate-700">Customer Name:</span>
             <span className="text-sm text-slate-900">{customerName}</span>
           </div>
-          <div className="grid grid-cols-[140px_1fr] gap-2">
+          <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
             <span className="text-sm font-semibold text-slate-700">Phone Number:</span>
             <span className="text-sm text-slate-900">{customerContact}</span>
           </div>
-          <div className="grid grid-cols-[140px_1fr] gap-2">
+          <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
             <span className="text-sm font-semibold text-slate-700">Model:</span>
             <span className="text-sm text-slate-900">{vehicleName}</span>
           </div>
-          <div className="grid grid-cols-[140px_1fr] gap-2">
+          <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
             <span className="text-sm font-semibold text-slate-700">Registration Number:</span>
             <span className="text-sm text-slate-900">{licensePlate}</span>
           </div>
-          <div className="grid grid-cols-[140px_1fr] gap-2">
+          <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
             <span className="text-sm font-semibold text-slate-700">Payment Method:</span>
             <span className="text-sm text-slate-900">{paymentMethod?.trim().toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) || 'Card'}</span>
           </div>
         </div>
 
         {/* Right Column - Invoice Details */}
-        <div className="space-y-3 text-right">
-          <div className="grid grid-cols-[1fr_140px] gap-2">
+        <div className="space-y-3 text-left md:text-right">
+          <div className="grid grid-cols-[1fr_110px] sm:grid-cols-[1fr_140px] gap-2">
             <span className="text-sm font-semibold text-slate-700">Invoice No:</span>
             <span className="text-sm text-slate-900">{invoiceNumber}</span>
           </div>
-          <div className="grid grid-cols-[1fr_140px] gap-2">
+          <div className="grid grid-cols-[1fr_110px] sm:grid-cols-[1fr_140px] gap-2">
             <span className="text-sm font-semibold text-slate-700">Invoice Date:</span>
             <span className="text-sm text-slate-900">{invoiceDate}</span>
           </div>
-          <div className="grid grid-cols-[1fr_140px] gap-2">
+          <div className="grid grid-cols-[1fr_110px] sm:grid-cols-[1fr_140px] gap-2">
             <span className="text-sm font-semibold text-slate-700">Time:</span>
             <span className="text-sm text-slate-900">{invoiceTime}</span>
           </div>
@@ -169,17 +166,17 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           <table className="w-full invoice-table">
             <thead>
               <tr className="border-b border-slate-200">
-                <th className="text-left text-sm font-semibold text-slate-600 pb-3 px-4">Description</th>
-                <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Price</th>
-                <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Amount</th>
+                <th className="text-left text-sm font-semibold text-slate-600 pb-3 pl-3 pr-2 sm:px-4">Description</th>
+                <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-2 sm:px-4 w-24 sm:w-32">Price</th>
+                <th className="text-right text-sm font-semibold text-slate-600 pb-3 pl-2 pr-2 sm:px-4 w-24 sm:w-32">Amount</th>
               </tr>
             </thead>
             <tbody>
               {services.map((item, index) => (
                 <tr key={item.id} className={index !== services.length - 1 ? "border-b border-slate-100" : ""}>
-                  <td className="text-sm text-slate-700 py-3 px-4">{item.name}</td>
-                  <td className="text-sm text-slate-700 py-3 px-4 text-right">₨{item.unitPrice.toLocaleString()}</td>
-                  <td className="text-sm font-medium text-slate-900 py-3 px-4 text-right">
+                  <td className="text-sm text-slate-700 py-3 pl-3 pr-2 sm:px-4 break-words">{item.name}</td>
+                  <td className="text-sm text-slate-700 py-3 px-2 sm:px-4 text-right">₨{item.unitPrice.toLocaleString()}</td>
+                  <td className="text-sm font-medium text-slate-900 py-3 pl-2 pr-2 sm:px-4 text-right">
                     ₨{(item.unitPrice * item.quantity).toLocaleString()}
                   </td>
                 </tr>
@@ -198,28 +195,28 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           <table className="w-full invoice-table">
             <thead>
               <tr className="border-b border-slate-200">
-                <th className="text-left text-sm font-semibold text-slate-600 pb-3 px-4">Description</th>
-                <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-24">Quantity</th>
-                <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Price</th>
-                <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-4 w-32">Amount</th>
+                <th className="text-left text-sm font-semibold text-slate-600 pb-3 pl-3 pr-2 sm:px-4">Description</th>
+                <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-2 sm:px-4 w-20 sm:w-24">Qty</th>
+                <th className="text-right text-sm font-semibold text-slate-600 pb-3 px-2 sm:px-4 w-24 sm:w-32">Price</th>
+                <th className="text-right text-sm font-semibold text-slate-600 pb-3 pl-2 pr-2 sm:px-4 w-24 sm:w-32">Amount</th>
               </tr>
             </thead>
             <tbody>
               {products.map((item, index) => (
                 <tr key={item.id} className={index !== products.length - 1 ? "border-b border-slate-100" : ""}>
-                  <td className="text-sm text-slate-700 py-3 px-4">
+                  <td className="text-sm text-slate-700 py-3 pl-3 pr-2 sm:px-4 break-words">
                     {item.name}
                     {item.customerSupplied && (
                       <span className="ml-2 text-xs text-slate-500 italic">(Customer Supplied)</span>
                     )}
                   </td>
-                  <td className="text-sm text-slate-700 py-3 px-4 text-right">
+                  <td className="text-sm text-slate-700 py-3 px-2 sm:px-4 text-right">
                     {item.customerSupplied ? '-' : item.quantity}
                   </td>
-                  <td className="text-sm text-slate-700 py-3 px-4 text-right">
+                  <td className="text-sm text-slate-700 py-3 px-2 sm:px-4 text-right">
                     {item.customerSupplied ? '-' : `₨${item.unitPrice.toLocaleString()}`}
                   </td>
-                  <td className="text-sm font-medium text-slate-900 py-3 px-4 text-right">
+                  <td className="text-sm font-medium text-slate-900 py-3 pl-2 pr-2 sm:px-4 text-right">
                     {item.customerSupplied ? '₨0' : `₨${(item.unitPrice * item.quantity).toLocaleString()}`}
                   </td>
                 </tr>
@@ -231,15 +228,11 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
 
       {/* Totals Section */}
       <div className="flex justify-end mt-8 print-keep-together">
-        <div className="w-96">
+        <div className="w-full md:w-96">
           <div className="space-y-3 mb-4 pb-4 border-b-2 border-slate-200">
             <div className="flex justify-between items-center">
               <span className="text-base text-slate-700">Subtotal</span>
               <span className="text-base font-semibold text-slate-900">₨{subtotal.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-base text-slate-700">Subtotal without Tax</span>
-              <span className="text-base font-semibold text-slate-900">₨{subtotalWithoutTax.toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-base text-slate-700">Tax</span>

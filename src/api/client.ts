@@ -55,6 +55,7 @@ export const api = {
     request<unknown>(`/customers/${customerId}/vehicles/${vehicleId}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteCustomerVehicle: (customerId: string, vehicleId: string) =>
     request<void>(`/customers/${customerId}/vehicles/${vehicleId}`, { method: 'DELETE' }),
+  getVehicles: () => request<unknown[]>(`/vehicles`),
   createCustomer: (body: unknown) => request<unknown>(`/customers`, { method: 'POST', body: JSON.stringify(body) }),
   updateCustomer: (id: string, body: unknown) => request<unknown>(`/customers/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteCustomer: (id: string) => request<void>(`/customers/${id}`, { method: 'DELETE' }),

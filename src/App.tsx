@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DataProvider } from "./contexts/DataContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { Login } from "./components/Login";
@@ -58,12 +58,15 @@ function getInitialPage(): Page {
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>(getInitialPage);
+  const [pageStack, setPageStack] = useState<Page[]>(() => [getInitialPage()]);
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
   const [invoiceCustomerId, setInvoiceCustomerId] = useState<string | null>(null);
+  const [invoiceVehiclePlate, setInvoiceVehiclePlate] = useState<string | null>(null);
 
   const handleLogin = () => {
     // Token is already stored by Login component
     setCurrentPage("dashboard");
+    setPageStack(["dashboard"]);
   };
 
   const handleLogout = () => {
@@ -72,16 +75,43 @@ export default function App() {
     localStorage.removeItem(REMEMBER_ME_KEY);
     sessionStorage.removeItem(AUTH_TOKEN_KEY);
     setCurrentPage("login");
+    setPageStack(["login"]);
   };
 
-  const handleNavigate = (page: string, options?: { customerId?: string }) => {
-    setCurrentPage(page as Page);
+  const handleNavigate = (page: string, options?: { customerId?: string, vehiclePlate?: string }) => {
+    const next = page as Page;
+    setCurrentPage(next);
+    setPageStack((prev) => {
+      const last = prev[prev.length - 1];
+      if (last === next) return prev;
+      return [...prev, next];
+    });
     if (page !== "invoices") {
       setShowCreateInvoice(false);
       setInvoiceCustomerId(null);
+      setInvoiceVehiclePlate(null);
     } else {
       setInvoiceCustomerId(options?.customerId ?? null);
+      setInvoiceVehiclePlate(options?.vehiclePlate ?? null);
     }
+  };
+
+  const canGoBack = useMemo(() => pageStack.length > 1 && currentPage !== "login", [pageStack.length, currentPage]);
+
+  const handleGoBack = () => {
+    setPageStack((prev) => {
+      if (prev.length <= 1) return prev;
+      const nextStack = prev.slice(0, -1);
+      const backPage = nextStack[nextStack.length - 1] ?? "dashboard";
+      setCurrentPage(backPage);
+      // Reset invoice-specific UI when leaving invoices
+      if (backPage !== "invoices") {
+        setShowCreateInvoice(false);
+        setInvoiceCustomerId(null);
+        setInvoiceVehiclePlate(null);
+      }
+      return nextStack;
+    });
   };
 
   const handleBackFromInvoice = () => {
@@ -102,7 +132,15 @@ export default function App() {
             showCreateInvoice={showCreateInvoice}
             setShowCreateInvoice={setShowCreateInvoice}
             filterCustomerId={invoiceCustomerId}
-            onClearCustomerFilter={() => setInvoiceCustomerId(null)}
+            filterVehiclePlate={invoiceVehiclePlate}
+            onClearCustomerFilter={() => {
+              setInvoiceCustomerId(null);
+              if (pageStack.length > 1) handleGoBack();
+            }}
+            onClearVehicleFilter={() => {
+              setInvoiceVehiclePlate(null);
+              if (pageStack.length > 1) handleGoBack();
+            }}
             onNavigate={handleNavigate}
           />
         );
@@ -149,6 +187,8 @@ export default function App() {
             onLogout={handleLogout}
             isCreatingInvoice={showCreateInvoice}
             onBackFromInvoice={handleBackFromInvoice}
+            canGoBack={canGoBack}
+            onGoBack={handleGoBack}
           >
             {renderPage()}
           </Layout>
