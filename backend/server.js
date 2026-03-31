@@ -30,7 +30,8 @@ const allowedOrigins = [
   "https://motorworks.pk",
   "https://www.motorworks.pk",
   "https://maws.pk", 
-  "https://www.maws.pk"
+  "https://www.maws.pk",
+  "https://portal.maws.pk"
 ];
 app.use(
   cors({
