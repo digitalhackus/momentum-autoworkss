@@ -353,9 +353,16 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
       tempSelectedProductIds.includes(p.id) && !selectedProducts.find(sp => sp.id === p.id)
     );
     
+    const validProductsToAdd = productsToAdd.filter(p => p.stock === undefined || p.stock > 0);
+    
+    if (productsToAdd.length > validProductsToAdd.length) {
+      setStockAlertMessage(`Some products were not added because they are out of stock.`);
+      setShowStockAlert(true);
+    }
+
     setSelectedProducts([
       ...selectedProducts, 
-      ...productsToAdd.map(p => ({ ...p, quantity: 1, customerSupplied: false, isEditing: false }))
+      ...validProductsToAdd.map(p => ({ ...p, quantity: 1, customerSupplied: false, isEditing: false }))
     ]);
     
     // Update recently used
@@ -369,6 +376,12 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
   };
 
   const addProduct = (product: typeof productList[0]) => {
+    if (product.stock !== undefined && product.stock <= 0) {
+      setStockAlertMessage(`Cannot add ${product.name}. Out of stock!`);
+      setShowStockAlert(true);
+      return;
+    }
+
     const existing = selectedProducts.find(p => p.id === product.id);
     if (existing) {
       updateProductQuantity(product.id, existing.quantity + 1);
@@ -1165,13 +1178,15 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto mb-3">
                     {sortedFilteredProducts.map((product) => {
                       const isAlreadyAdded = !!selectedProducts.find(p => p.id === product.id);
+                      const isOutOfStock = product.stock !== undefined && product.stock <= 0;
+                      const isDisabled = isAlreadyAdded || isOutOfStock;
                       const isSelected = tempSelectedProductIds.includes(product.id);
                       return (
                         <div
                           key={product.id}
-                          onClick={() => !isAlreadyAdded && toggleProductSelection(product.id)}
+                          onClick={() => !isDisabled && toggleProductSelection(product.id)}
                           className={`p-2 border-2 rounded-lg transition-all cursor-pointer ${
-                            isAlreadyAdded
+                            isDisabled
                               ? 'bg-slate-100 border-slate-300 opacity-50 cursor-not-allowed'
                               : isSelected
                               ? 'bg-white border-theme shadow-sm'
@@ -1181,9 +1196,9 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
                           <div className="flex items-start gap-2">
                             <Checkbox
                               checked={isSelected}
-                              disabled={isAlreadyAdded}
+                              disabled={isDisabled}
                               onCheckedChange={(checked) => {
-                                if (!isAlreadyAdded) {
+                                if (!isDisabled) {
                                   toggleProductSelection(product.id);
                                 }
                               }}
@@ -1193,9 +1208,12 @@ export function AddInvoice({ onClose, onSubmit, userRole = "Admin", editInvoice 
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-xs truncate">{product.name}</p>
                               <p className="text-xs font-semibold text-theme">₨{product.price.toLocaleString()}</p>
-                              <p className="text-xs text-slate-500">Stock: {product.stock}</p>
+                              <p className={`text-xs ${isOutOfStock ? 'text-red-500 font-semibold' : 'text-slate-500'}`}>Stock: {product.stock}</p>
                               {isAlreadyAdded && (
                                 <p className="text-xs text-slate-500 italic">Already added</p>
+                              )}
+                              {isOutOfStock && !isAlreadyAdded && (
+                                <p className="text-xs text-red-500 italic">Out of stock</p>
                               )}
                             </div>
                           </div>

@@ -18,10 +18,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "./ui/dialog";
-import { 
+import {
   ArrowLeft,
-  Printer, 
-  Download, 
+  Printer,
+  Download,
   Mail,
   X,
   Edit,
@@ -256,7 +256,7 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
   const [markingPaid, setMarkingPaid] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
-  
+
   const isEditable = invoice.status !== 'Paid';
 
   const handleMarkAsPaid = async () => {
@@ -305,7 +305,7 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
   return (
     <>
       {showInvoicePreview && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget && onClose) {
@@ -319,7 +319,7 @@ export function InvoiceDetail({ invoice, onClose, onEdit }: InvoiceDetailProps) 
               <h2 className="text-base sm:text-xl font-bold text-slate-900">Invoice Details</h2>
 
               {/* Mobile: hamburger menu for actions */}
-              <div className="flex items-center justify-end sm:hidden">
+              <div className="flex items-center justify-end">
                 <DropdownMenu open={actionsOpen} onOpenChange={setActionsOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button
