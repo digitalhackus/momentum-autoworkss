@@ -498,7 +498,7 @@ export function Expenses() {
                 className="h-9 text-sm border-slate-200 focus:border-theme focus:ring-theme"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="expense-amount" className="text-xs font-semibold text-slate-700">
                   Amount (₨) <span className="text-red-500">*</span>

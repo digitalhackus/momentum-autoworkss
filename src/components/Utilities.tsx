@@ -624,7 +624,7 @@ export function Utilities() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="utility-period-start" className="text-xs font-semibold text-slate-700">
                   Period start <span className="text-red-500">*</span>
@@ -650,7 +650,7 @@ export function Utilities() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="utility-amount" className="text-xs font-semibold text-slate-700">
                   Amount (₨) <span className="text-red-500">*</span>

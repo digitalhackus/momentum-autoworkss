@@ -66,8 +66,8 @@ export function AddVehicleModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md p-6 bg-white">
+    <div className="fixed inset-0 bg-black/50 flex items-start md:items-center justify-center z-50 p-0 md:p-4">
+      <Card className="w-full h-[100dvh] md:h-auto md:max-w-md p-4 md:p-6 bg-white rounded-none md:rounded-xl overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-theme-100 rounded-lg flex items-center justify-center">
@@ -99,7 +99,7 @@ export function AddVehicleModal({
 
         {/* Vehicle Form */}
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label className="text-sm mb-2">
                 Make <span className="text-red-500">*</span>
@@ -179,8 +179,8 @@ export function VehicleSelectionModal({
   if (!isOpen || !customer) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg p-6 bg-white">
+    <div className="fixed inset-0 bg-black/50 flex items-start md:items-center justify-center z-50 p-0 md:p-4">
+      <Card className="w-full h-[100dvh] md:h-auto md:max-w-lg p-4 md:p-6 bg-white rounded-none md:rounded-xl overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold">Select a Vehicle</h3>

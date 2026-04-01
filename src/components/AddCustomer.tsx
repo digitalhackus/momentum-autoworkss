@@ -144,7 +144,7 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full">
+    <div className="bg-white rounded-none sm:rounded-2xl shadow-none sm:shadow-2xl sm:max-w-3xl w-full h-full md:h-auto overflow-y-auto">
       {/* Header */}
       <div className="p-6 pb-4 flex items-center justify-between border-b">
         <h2 className="text-lg">{mode === "edit" ? "Edit Customer" : "Add New Customer"}</h2>
@@ -164,7 +164,7 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
           {/* First Row - Customer Information */}
           <div>
             <h4 className="text-xs uppercase text-gray-500 mb-4">Customer Information</h4>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName" className="text-xs">Full Name *</Label>
                 <Input
@@ -209,7 +209,7 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
           {/* Second Row - Address */}
           <div>
             <h4 className="text-xs uppercase text-gray-500 mb-4">Address</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="street" className="text-xs">Street Address</Label>
                 <Input
@@ -258,7 +258,7 @@ export function AddCustomer({ onClose, onSubmit, onSaveAndAddVehicle, onDelete, 
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 pt-0 flex gap-3">
+        <div className="p-6 pt-0 flex flex-col sm:flex-row gap-3">
           {mode === "edit" ? (
             <>
               <Button type="submit" className="flex-1 bg-theme hover:bg-theme-dark">

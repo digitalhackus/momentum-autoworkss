@@ -471,7 +471,7 @@ export function SalaryRecords({ onNavigate }: SalaryRecordsProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Month</Label>
                 <Select
@@ -501,7 +501,7 @@ export function SalaryRecords({ onNavigate }: SalaryRecordsProps) {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Bonus (₨)</Label>
                 <Input

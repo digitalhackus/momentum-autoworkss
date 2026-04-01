@@ -70,7 +70,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
   return (
     <div className="bg-white p-12 max-w-4xl mx-auto print:max-w-full print:mx-0 print:px-8 print:py-6 invoice-print">
       {/* Header with Logo and Company Info */}
-      <div className="flex flex-col sm:flex-row items-start gap-4 mb-8 pb-6 border-b border-slate-200 print-keep-together">
+      <div className="invoice-header-row flex items-start gap-4 mb-8 pb-6 border-b border-slate-200 print-keep-together">
         <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={companyLogo ? {} : { backgroundColor: 'var(--primary-color, #c2272d)' }}>
           {companyLogo ? (
             <img src={companyLogo} alt="Company Logo" className="w-full h-full object-contain" />
@@ -92,18 +92,18 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
         </div>
         <div className="flex-1">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-3 break-words">{displayName.toUpperCase()}</h1>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-x-8 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-x-8 text-sm invoice-company-grid">
             <div className="break-words">
               <p className="text-slate-500 font-medium mb-1">Email</p>
-              <p className="text-slate-700">{displayEmail}</p>
+              <p className="text-slate-700 invoice-company-email">{displayEmail}</p>
             </div>
             <div className="break-words">
               <p className="text-slate-500 font-medium mb-1">Address</p>
-              <p className="text-slate-700 break-words">{displayAddress}</p>
+              <p className="text-slate-700 break-words invoice-company-address">{displayAddress}</p>
             </div>
             <div className="break-words">
               <p className="text-slate-500 font-medium mb-1">Phone</p>
-              <p className="text-slate-700 whitespace-nowrap sm:whitespace-normal break-words">{displayPhone}</p>
+              <p className="text-slate-700 whitespace-nowrap sm:whitespace-normal break-words invoice-company-phone">{displayPhone}</p>
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
       </div>
 
       {/* Customer & Invoice Details - Responsive Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 mb-10 print-keep-together">
+      <div className="invoice-details-grid grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 mb-10 print-keep-together">
         {/* Left Column - Customer Details */}
         <div className="space-y-3">
           <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
@@ -124,7 +124,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({
           </div>
           <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
             <span className="text-sm font-semibold text-slate-700">Phone Number:</span>
-            <span className="text-sm text-slate-900">{customerContact}</span>
+            <span className="text-sm text-slate-900 invoice-customer-phone">{customerContact}</span>
           </div>
           <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">
             <span className="text-sm font-semibold text-slate-700">Model:</span>

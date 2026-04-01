@@ -61,7 +61,7 @@ function getInvoiceHTML(container: HTMLElement): string {
 <style>
   :root { --primary-color: ${themeColor}; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; background: white; padding: 40px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; background: white; padding: 18px; }
   @page { margin: 1cm; size: A4 portrait; }
   table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
   tr { page-break-inside: avoid; }
@@ -107,11 +107,16 @@ function getInvoiceHTML(container: HTMLElement): string {
   .gap-2 { gap: 0.5rem; }
   .gap-4 { gap: 1rem; }
   .gap-8 { gap: 2rem; }
-  .gap-12 { gap: 3rem; }
+  .gap-12 { gap: 1.5rem; }
   .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grid-cols-\\[140px_1fr\\] { grid-template-columns: 140px 1fr; }
   .grid-cols-\\[1fr_140px\\] { grid-template-columns: 1fr 140px; }
+  .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .md\\:gap-12 { gap: 1.5rem; }
+  .md\\:text-right { text-align: right; }
+  .invoice-details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+  .invoice-details-grid > div:last-child { text-align: right; }
   .space-y-3 > * + * { margin-top: 0.75rem; }
   .mb-1 { margin-bottom: 0.25rem; }
   .mb-3 { margin-bottom: 0.75rem; }
@@ -129,7 +134,7 @@ function getInvoiceHTML(container: HTMLElement): string {
   .pt-6 { padding-top: 1.5rem; }
   .px-4 { padding-left: 1rem; padding-right: 1rem; }
   .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-  .p-12 { padding: 3rem; }
+  .p-12 { padding: 1.5rem; }
   .w-16 { width: 4rem; }
   .w-24 { width: 6rem; }
   .w-32 { width: 8rem; }
@@ -139,6 +144,15 @@ function getInvoiceHTML(container: HTMLElement): string {
   .h-10 { height: 2.5rem; }
   .w-full { width: 100%; }
   .rounded-xl { border-radius: 0.75rem; }
+  .break-words { overflow-wrap: anywhere; word-break: break-word; }
+  .whitespace-nowrap { white-space: nowrap; }
+  .invoice-company-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem 2rem; }
+  .invoice-company-grid > div { min-width: 0; }
+  .invoice-header-row { display: flex; flex-direction: row; align-items: flex-start; }
+  .invoice-company-email,
+  .invoice-company-address { overflow-wrap: anywhere; word-break: break-word; }
+  .invoice-company-phone,
+  .invoice-customer-phone { white-space: nowrap; word-break: keep-all; }
   @media print {
     body { padding: 0; }
     * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
@@ -176,7 +190,7 @@ function downloadPDF(container: HTMLElement, filename: string) {
             margin: [10, 10, 10, 10],
             filename: '${filename.replace(/'/g, "\\'")}',
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+            html2canvas: { scale: 2, windowWidth: 900, useCORS: true, logging: false, backgroundColor: '#ffffff' },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
           }).from(document.body).save().then(function() {
@@ -436,7 +450,7 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
             </div>
 
             {/* Customer & Invoice Details - Responsive Columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 mb-10">
+            <div className="invoice-details-grid grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 mb-10">
               {/* Left Column - Customer Details */}
               <div className="space-y-3">
                 <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[140px_1fr] gap-2">

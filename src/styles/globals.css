@@ -203,6 +203,21 @@ html {
   font-size: var(--font-size);
 }
 
+/* Dialog mobile usability: stack form fields + actions vertically */
+@media (max-width: 639px) {
+  [data-slot="dialog-content"] form .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  [data-slot="dialog-content"] form .flex {
+    flex-direction: column !important;
+  }
+
+  [data-slot="dialog-content"] form button {
+    width: 100% !important;
+  }
+}
+
 /* Print Styles for Invoice */
 @media print {
   /* A4 page setup - consistent margins */
@@ -265,6 +280,14 @@ html {
   
   .invoice-table tfoot {
     display: table-footer-group !important;
+  }
+
+  /* Keep customer/invoice details in desktop-style two-column grid on print */
+  .invoice-printable-wrapper .invoice-details-grid,
+  .invoice-print .invoice-details-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    column-gap: 3rem !important;
   }
   
   .invoice-table tr {
@@ -556,4 +579,36 @@ input[type="number"] {
 
 [data-themed-calendar] [data-rdp-day][aria-selected="true"]:hover {
   background-color: var(--primary-color-dark) !important;
+}
+
+/* Dialog Responsiveness Fixes */
+.responsive-dialog-content {
+  position: fixed !important;
+  z-index: 50 !important;
+}
+
+@media (max-width: 639px) {
+  .responsive-dialog-content {
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    overflow-y: auto !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .responsive-dialog-content {
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: 100% !important;
+    max-width: 32rem !important; /* Equivalent to max-w-lg */
+    height: auto !important;
+    margin: 0 !important;
+  }
 }

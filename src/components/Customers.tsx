@@ -652,12 +652,12 @@ export function Customers({ onNavigate, setShowCreateInvoice }: CustomersProps =
       {/* Vehicles list modal */}
       {vehiclesModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-start md:items-center justify-center z-50 p-0 md:p-4"
           onClick={() => setVehiclesModal(null)}
           role="presentation"
         >
           <Card
-            className="w-full max-w-lg p-6 bg-white"
+            className="w-full h-[100dvh] md:h-auto md:max-w-lg p-4 md:p-6 bg-white rounded-none md:rounded-xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4">
