@@ -65,7 +65,7 @@ interface VehiclesProps {
 }
 
 export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {}) {
-  const { customers, invoices, addCustomer, addVehicle, getCustomerVehicles, deleteVehicle } = useData();
+  const { customers, invoices, addCustomer, addVehicle, getCustomerVehicles, deleteVehicle, allVehicles } = useData();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
   const [step, setStep] = useState<"customer" | "newCustomer" | "vehicle">("customer");
@@ -73,8 +73,7 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
   const [showOwnerAlert, setShowOwnerAlert] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
-  const [vehicles, setVehicles] = useState<DisplayVehicle[]>([]);
-  const [vehiclesLoading, setVehiclesLoading] = useState(false);
+  const [vehicleStatuses, setVehicleStatuses] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState("all");
   const [statusChangeTarget, setStatusChangeTarget] = useState<{ vehicle: DisplayVehicle; newStatus: string } | null>(null);
 
@@ -121,72 +120,45 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
     } catch {}
   }, [customers]);
 
-  useEffect(() => {
-    const loadAllVehicles = async () => {
-      setVehiclesLoading(true);
-      try {
-        const customerList = customers ?? [];
-        if (customerList.length === 0) {
-          setVehicles([]);
-          return;
-        }
+  // Build a customer lookup map for O(1) owner name resolution
+  const customerMap = useMemo(() => {
+    const map = new Map<string, string>();
+    customers.forEach((c) => map.set(c.id, c.name));
+    return map;
+  }, [customers]);
 
-        // Fetch vehicles per customer with a small concurrency limit (avoids hammering the backend)
-        const concurrency = 6;
-        const results: DisplayVehicle[] = [];
-        const seen = new Set<string>(); // dedupe by normalized plate across customers
-
-        for (let i = 0; i < customerList.length; i += concurrency) {
-          const slice = customerList.slice(i, i + concurrency);
-          const settled = await Promise.allSettled(slice.map((c) => getCustomerVehicles(c.id)));
-
-          settled.forEach((s, idx) => {
-            const customer = slice[idx];
-            const ownerName = customer?.name || "Unknown";
-
-            if (s.status !== "fulfilled") return;
-            const list = s.value || [];
-
-            list.forEach((v) => {
-              const plate = v.vehicleNumber || "";
-              const key = plate.replace(/[\s-]/g, "").toUpperCase();
-              if (!key || seen.has(key)) return;
-              seen.add(key);
-
-              const vehicleInvoices = invoices.filter((inv) => inv.plate === plate);
-              const paidInvoices = vehicleInvoices.filter((inv) => inv.status === "Paid");
-              const totalSpent = paidInvoices.reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
-              const lastInvoice = [...vehicleInvoices].sort(
-                (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-              )[0];
-
-              results.push({
-                id: v.id,
-                make: v.carMake || "",
-                model: v.carModel || "",
-                year: v.carYear || "",
-                plate,
-                owner: ownerName,
-                ownerId: v.customerId,
-                totalInvoices: vehicleInvoices.length,
-                totalSpent,
-                lastActivity: lastInvoice ? lastInvoice.date : "No activity",
-                status: "Active",
-              });
-            });
-          });
-        }
-
-        setVehicles(results);
-      } catch (error) {
-        console.error("Failed to load vehicles:", error);
-        toast.error("Could not load vehicle registry.");
-      } finally {
-        setVehiclesLoading(false);
-      }
-    };
-    loadAllVehicles();
-  }, [customers, getCustomerVehicles, invoices]);
+  // Derive DisplayVehicle list from pre-loaded allVehicles (fetched at app startup)
+  const vehicles = useMemo(() => {
+    const seen = new Set<string>();
+    const results: DisplayVehicle[] = [];
+    for (const v of allVehicles) {
+      const plate = v.vehicleNumber || "";
+      const key = plate.replace(/[\s-]/g, "").toUpperCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      const ownerName = customerMap.get(v.customerId) || "Unknown";
+      const vehicleInvoices = invoices.filter((inv) => inv.plate === plate);
+      const paidInvoices = vehicleInvoices.filter((inv) => inv.status === "Paid");
+      const totalSpent = paidInvoices.reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+      const lastInvoice = [...vehicleInvoices].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      )[0];
+      results.push({
+        id: v.id,
+        make: v.carMake || "",
+        model: v.carModel || "",
+        year: v.carYear || "",
+        plate,
+        owner: ownerName,
+        ownerId: v.customerId,
+        totalInvoices: vehicleInvoices.length,
+        totalSpent,
+        lastActivity: lastInvoice ? lastInvoice.date : "No activity",
+        status: vehicleStatuses[v.id] ?? "Active",
+      });
+    }
+    return results;
+  }, [allVehicles, customerMap, invoices, vehicleStatuses]);
 
   const vehiclesWithoutInvoicesCount = vehicles.filter(v => v.totalInvoices === 0).length;
   const filteredCustomers = customers.filter(customer =>
@@ -598,20 +570,6 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
                           vehicleNumber: plateInput.trim(),
                         });
                         toast.success("Vehicle added for this customer.");
-                        setVehicles((prev) => [
-                          ...prev,
-                          {
-                            id: created.id,
-                            make: created.carMake || "",
-                            model: created.carModel || "",
-                            year: created.carYear || "",
-                            plate: created.vehicleNumber || "",
-                            owner: selectedCustomer.name,
-                            ownerId: selectedCustomer.id,
-                            status: "Active",
-                            serviceHistory: 0,
-                          },
-                        ]);
                         handleCloseDialog();
                       } catch (err) {
                         console.error("Failed to add vehicle from Vehicles page:", err);
@@ -944,11 +902,10 @@ export function Vehicles({ onNavigate, setShowCreateInvoice }: VehiclesProps = {
                 if (!statusChangeTarget) return;
                 // In a real app, we would call an API here. 
                 // Since this is a UI update, we'll update the local state for demonstration.
-                setVehicles(prev => prev.map(v => 
-                  v.id === statusChangeTarget.vehicle.id 
-                    ? { ...v, status: statusChangeTarget.newStatus } 
-                    : v
-                ));
+                setVehicleStatuses(prev => ({
+                  ...prev,
+                  [statusChangeTarget.vehicle.id]: statusChangeTarget.newStatus,
+                }));
                 toast.success(`Vehicle marked as ${statusChangeTarget.newStatus}.`);
                 setStatusChangeTarget(null);
               }}

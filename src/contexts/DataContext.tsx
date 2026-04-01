@@ -252,6 +252,7 @@ interface DataContextType {
   employees: Employee[];
   salaryRecords: SalaryRecord[];
   dailyCloses: DailyCloseRecord[];
+  allVehicles: CustomerVehicle[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -344,13 +345,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
   const [dailyCloses, setDailyCloses] = useState<DailyCloseRecord[]>([]);
+  const [allVehicles, setAllVehicles] = useState<CustomerVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
     setError(null);
     try {
-      const [inv, cust, prod, srv, vend, stock, pay, exp, uTypes, utils, emps, dcList] = await Promise.all([
+      const [inv, cust, prod, srv, vend, stock, pay, exp, uTypes, utils, emps, dcList, vehs] = await Promise.all([
         api.getInvoices(),
         api.getCustomers(),
         api.getProducts(),
@@ -363,6 +365,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         api.getUtilities(),
         api.getEmployees(),
         api.getDailyCloses(),
+        api.getVehicles(),
       ]);
       setInvoices((inv as Invoice[]) || []);
       setCustomers((cust as Customer[]) || []);
@@ -376,6 +379,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setUtilities((utils as Utility[]) || []);
       setEmployees((emps as Employee[]) || []);
       setDailyCloses((dcList as DailyCloseRecord[]) || []);
+      setAllVehicles((vehs as CustomerVehicle[]) || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -674,6 +678,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         employees,
         salaryRecords,
         dailyCloses,
+        allVehicles,
         loading,
         error,
         refetch,
