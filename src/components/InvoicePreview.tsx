@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
-import { X, Printer, Share2, Download, Menu } from "lucide-react";
+import { X, Printer, Share2, Download, Menu, Mail, Edit, CheckCircle2 } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 import {
   DropdownMenu,
@@ -47,7 +47,9 @@ interface InvoiceData {
 interface InvoicePreviewProps {
   isOpen: boolean;
   onClose: () => void;
-  invoiceData: InvoiceData;
+  onEdit?: () => void;
+  onMarkAsPaid?: () => void;
+  invoiceData: InvoiceData & { id?: string };
 }
 
 function getInvoiceHTML(container: HTMLElement): string {
@@ -253,7 +255,7 @@ function downloadPDF(container: HTMLElement, filename: string) {
   iframeDoc.close();
 }
 
-export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewProps) {
+export function InvoicePreview({ isOpen, onClose, onEdit, onMarkAsPaid, invoiceData }: InvoicePreviewProps) {
   const { theme } = useTheme();
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -271,7 +273,11 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
   };
 
   const handleShare = () => {
-    alert("Share functionality - Integration pending");
+    alert("Share options will be displayed here");
+  };
+
+  const handleEmail = () => {
+    alert(`Email functionality would send invoice to ${invoiceData.customerEmail || 'customer email'}`);
   };
 
   const currentTime = new Date().toLocaleTimeString('en-US', { 
@@ -300,8 +306,8 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
         <div className="bg-white rounded-t-lg px-4 sm:px-6 py-3.5 border-b border-slate-200 sticky top-4 z-10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base sm:text-lg font-semibold text-slate-900">Invoice Details</h2>
-            {/* Mobile: hamburger menu */}
-            <div className="flex items-center justify-end sm:hidden">
+            {/* Mobile/Hamburger: menu for actions */}
+            <div className="flex items-center justify-end">
               <DropdownMenu open={actionsOpen} onOpenChange={setActionsOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -344,17 +350,57 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                     <Share2 className="h-4 w-4 mr-2" />
                     Share
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onSelect={() => {
                       setActionsOpen(false);
-                      onClose();
+                      handleEmail();
                     }}
                     className="cursor-pointer"
                   >
-                    <X className="h-4 w-4 mr-2" />
-                    Close
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email
                   </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  {onMarkAsPaid && (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setActionsOpen(false);
+                        onMarkAsPaid();
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Mark as Paid
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {onEdit && (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setActionsOpen(false);
+                        onEdit();
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                  )}
+
+                  {onClose && (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setActionsOpen(false);
+                        onClose();
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Close
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -363,7 +409,7 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
             <div className="hidden sm:flex flex-wrap items-center justify-end gap-2">
               <Button
                 size="sm"
-                className="h-9 text-xs sm:text-sm w-full xs:w-auto text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+                className="h-9 text-xs sm:text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
                 variant="outline"
                 onClick={handlePrint}
               >
@@ -374,7 +420,7 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
                 size="sm"
                 variant="outline"
                 onClick={handleDownloadPDF}
-                className="h-9 text-xs sm:text-sm w-full xs:w-auto text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+                className="h-9 text-xs sm:text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
               >
                 <Download className="h-4 w-4 mr-2" />
                 PDF
@@ -382,17 +428,50 @@ export function InvoicePreview({ isOpen, onClose, invoiceData }: InvoicePreviewP
               <Button
                 size="sm"
                 variant="outline"
-                onClick={handleShare}
-                className="h-9 text-xs sm:text-sm w-full xs:w-auto text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+                onClick={handleEmail}
+                className="h-9 text-xs sm:text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
               >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
+                <Mail className="h-4 w-4 mr-2" />
+                Email
               </Button>
               <Button
                 size="sm"
                 variant="outline"
+                onClick={handleShare}
+                className="h-9 text-xs sm:text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+              
+              {onMarkAsPaid && (
+                <Button
+                  size="sm"
+                  onClick={onMarkAsPaid}
+                  className="h-9 text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white transition-colors"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Mark as Paid
+                </Button>
+              )}
+              
+              {onEdit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onEdit}
+                  className="h-9 text-xs sm:text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={onClose}
-                className="h-9 text-xs sm:text-sm w-full xs:w-auto text-theme border-theme-200 hover:bg-theme-50 transition-colors"
+                className="h-9 text-xs sm:text-sm text-theme border-theme-200 hover:bg-theme-50 transition-colors"
               >
                 <X className="h-4 w-4 mr-2" />
                 Close
